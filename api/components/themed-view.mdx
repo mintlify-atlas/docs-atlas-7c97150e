@@ -1,0 +1,119 @@
+---
+title: ThemedView
+description: A themed view component that automatically adapts background colors to light and dark modes
+---
+
+# ThemedView
+
+The `ThemedView` component is a wrapper around React Native's `View` component that automatically applies theme-aware background colors.
+
+## Import
+
+```tsx
+import { ThemedView } from '@/src/components/ThemedView';
+```
+
+## Props
+
+The component extends all standard React Native `ViewProps` and adds the following:
+
+<ParamField path="lightColor" type="string" optional>
+  Custom background color to use in light mode. If not provided, uses the theme's default background color.
+</ParamField>
+
+<ParamField path="darkColor" type="string" optional>
+  Custom background color to use in dark mode. If not provided, uses the theme's default background color.
+</ParamField>
+
+## Usage
+
+### Basic Usage
+
+```tsx
+<ThemedView>
+  <ThemedText>Content with themed background</ThemedText>
+</ThemedView>
+```
+
+### Custom Theme Colors
+
+```tsx
+<ThemedView 
+  lightColor="#F5F5F5" 
+  darkColor="#1A1A1A"
+>
+  <ThemedText>Custom background colors</ThemedText>
+</ThemedView>
+```
+
+### With Additional Styles
+
+```tsx
+<ThemedView 
+  style={{
+    padding: 20,
+    borderRadius: 10,
+    marginVertical: 10
+  }}
+>
+  <ThemedText>Styled container</ThemedText>
+</ThemedView>
+```
+
+### Combining with Layout Styles
+
+```tsx
+<ThemedView 
+  style={{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  }}
+>
+  <ThemedText type="title">Centered Content</ThemedText>
+</ThemedView>
+```
+
+## How Theme Colors Work
+
+The component uses the `useThemeColor` hook to automatically select the appropriate background color based on the current theme:
+
+1. If `lightColor` or `darkColor` are provided, those are used for the respective themes
+2. Otherwise, it falls back to the theme's default `background` color
+3. The background color automatically updates when the user switches between light and dark mode
+4. Additional styles from the `style` prop are merged with the background color
+
+## Styling
+
+The component accepts all standard React Native `View` styles through the `style` prop. The background color from the theme is applied first, then your custom styles are merged on top, allowing you to override or extend the default styling.
+
+```tsx
+<ThemedView 
+  lightColor="#FFFFFF"
+  darkColor="#000000"
+  style={{
+    borderWidth: 1,
+    borderColor: '#CCCCCC',
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3
+  }}
+>
+  <ThemedText>Card-style container</ThemedText>
+</ThemedView>
+```
+
+## Source Code
+
+Location: `src/components/ThemedView.tsx:10`
+
+```tsx
+export function ThemedView({ style, lightColor, darkColor, ...otherProps }: ThemedViewProps) {
+  const backgroundColor = useThemeColor({ light: lightColor, dark: darkColor }, 'background');
+
+  return <View style={[{ backgroundColor }, style]} {...otherProps} />;
+}
+```

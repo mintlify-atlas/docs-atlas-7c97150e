@@ -1,0 +1,396 @@
+---
+title: 'Routing'
+description: 'File-based routing with Expo Router'
+icon: 'route'
+---
+
+The RIS Gran Chimú app uses **Expo Router** for navigation, which provides automatic, type-safe routing based on the file structure in the `app/` directory.
+
+## File-Based Routing
+
+Expo Router automatically generates routes based on the files in your `app/` directory. Each file becomes a route in your application.
+
+### Basic Route Examples
+
+<CodeGroup>
+```text File Structure
+app/
+├── index.tsx           → /
+├── landing/
+│   ├── index.tsx       → /landing
+│   └── contacto.tsx    → /landing/contacto
+└── (auth)/
+    └── login-admin.tsx → /login-admin
+```
+
+```tsx Accessing Routes
+import { useRouter } from 'expo-router';
+
+const router = useRouter();
+
+// Navigate to landing
+router.push('/landing');
+
+// Navigate to contact
+router.push('/landing/contacto');
+
+// Navigate and replace
+router.replace('/login-admin');
+```
+</CodeGroup>
+
+## Route Groups
+
+Route groups allow you to organize routes without affecting the URL structure. They use parentheses in the folder name: `(groupName)`.
+
+### (auth) Group
+
+Authentication-related screens.
+
+```text
+app/(auth)/
+└── login-admin.tsx → /login-admin
+```
+
+<Info>
+The `(auth)` folder doesn't appear in the URL. The route is `/login-admin`, not `/auth/login-admin`.
+</Info>
+
+### (main) Group
+
+Protected routes that require authentication.
+
+```text
+app/(main)/
+├── _layout.tsx                      # Auth guard layout
+└── dashboard/
+    ├── index.tsx                    → /(main)/dashboard
+    ├── admin/
+    │   ├── index.tsx                → /(main)/dashboard/admin
+    │   └── users/index.tsx          → /(main)/dashboard/admin/users
+    ├── editor/
+    │   └── index.tsx                → /(main)/dashboard/editor
+    └── manage/
+        ├── noticias/index.tsx       → /(main)/dashboard/manage/noticias
+        ├── establecimientos/index.tsx
+        └── ...
+```
+
+### landing Group
+
+Public-facing screens with tab navigation.
+
+```text
+app/landing/
+├── _layout.tsx          # Tab navigation configuration
+├── index.tsx            → /landing
+├── estrategias.tsx      → /landing/estrategias
+├── establecimientos.tsx → /landing/establecimientos
+├── transparencia.tsx    → /landing/transparencia
+└── contacto.tsx         → /landing/contacto
+```
+
+## Layouts
+
+Layouts are special files named `_layout.tsx` that wrap child routes.
+
+### Root Layout
+
+The root layout provides global providers and configuration:
+
+```tsx app/_layout.tsx
+import { AuthProvider } from '@/src/hooks/useAuth';
+import * as NavigationBar from 'expo-navigation-bar';
+import { Slot } from 'expo-router';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync('white');
+      NavigationBar.setButtonStyleAsync('dark');
+    }
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <Slot />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+```
+
+<Note>
+The `<Slot />` component renders the child routes. Think of it like `{children}` in standard React.
+</Note>
+
+### Protected Layout (Auth Guard)
+
+The `(main)/_layout.tsx` file protects routes that require authentication:
+
+```tsx app/(main)/_layout.tsx
+import { useAuth } from '@/src/hooks/useAuth';
+import { PermissionProvider } from '@/src/context/PermissionContext';
+import { Stack, useRouter } from 'expo-router';
+import { useEffect } from 'react';
+
+export default function MainLayout() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log('❌ [MainLayout] No user → redirecting to home..');
+      router.replace('/landing');
+    } else if (!loading && user) {
+      console.log('✅ [MainLayout] Authenticated user:', user);
+    }
+  }, [user, loading]);
+
+  if (loading) return null;
+
+  return (
+    <PermissionProvider>
+      <Stack />
+    </PermissionProvider>
+  );
+}
+```
+
+<Steps>
+  <Step title="Check Authentication">
+    The layout checks if a user is authenticated using `useAuth()`
+  </Step>
+  
+  <Step title="Redirect if Unauthenticated">
+    If no user is found, redirect to `/landing`
+  </Step>
+  
+  <Step title="Provide Permissions">
+    If authenticated, wrap children in `PermissionProvider` for role-based access
+  </Step>
+</Steps>
+
+### Tab Layout
+
+The landing section uses tab navigation:
+
+```tsx app/landing/_layout.tsx
+import { Tabs } from 'expo-router';
+import { Home, Building2, FileText, Phone, Target } from 'lucide-react-native';
+
+export default function LandingTabLayout() {
+  return (
+    <Tabs
+      initialRouteName="index"
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#FFFFFF',
+        tabBarInactiveTintColor: '#6B7280',
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E5E7EB',
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="estrategias"
+        options={{
+          title: 'Estrategias',
+          tabBarIcon: ({ focused }) => (
+            <Target size={24} color={focused ? '#FFFFFF' : '#6B7280'} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="establecimientos"
+        options={{
+          title: 'Centros',
+          tabBarIcon: ({ focused }) => (
+            <Building2 size={24} color={focused ? '#FFFFFF' : '#6B7280'} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Inicio',
+          tabBarIcon: ({ focused }) => (
+            <Home size={24} color={focused ? '#FFFFFF' : '#6B7280'} />
+          ),
+        }}
+      />
+      
+      {/* More tabs... */}
+    </Tabs>
+  );
+}
+```
+
+## Navigation
+
+Expo Router provides several navigation methods via the `useRouter()` hook.
+
+### Navigation Methods
+
+<CodeGroup>
+```tsx Push
+import { useRouter } from 'expo-router';
+
+const router = useRouter();
+
+// Add a new route to the navigation stack
+router.push('/landing/contacto');
+```
+
+```tsx Replace
+// Replace the current route (no back navigation)
+router.replace('/(main)/dashboard/admin');
+```
+
+```tsx Back
+// Navigate back in the stack
+router.back();
+```
+
+```tsx Navigate with Params
+// Pass parameters (type-safe with TypeScript)
+router.push({
+  pathname: '/landing/noticias',
+  params: { id: '123' }
+});
+```
+</CodeGroup>
+
+### Accessing Route Parameters
+
+```tsx
+import { useLocalSearchParams } from 'expo-router';
+
+export default function NoticiaDetail() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  
+  return <Text>Noticia ID: {id}</Text>;
+}
+```
+
+## Entry Point Logic
+
+The `app/index.tsx` file handles initial routing based on authentication state:
+
+```tsx app/index.tsx
+import { useAuth } from '@/src/hooks/useAuth';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { Platform, Text, View } from 'react-native';
+
+export default function Index() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      // Redirect based on platform
+      if (Platform.OS === 'web') {
+        router.replace('/landing');
+      } else {
+        if (user) {
+          // Redirect authenticated users to their dashboard
+          if (user.role === 'admin') {
+            router.replace('/(main)/dashboard/admin');
+          } else if (user.role === 'editor') {
+            router.replace('/(main)/dashboard/editor');
+          }
+        } else {
+          // Redirect unauthenticated users to landing
+          router.replace('/landing');
+        }
+      }
+    }
+  }, [user, loading]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Cargando autenticación...</Text>
+      </View>
+    );
+  }
+  
+  return null;
+}
+```
+
+<Steps>
+  <Step title="Wait for Auth">
+    Wait for authentication state to load
+  </Step>
+  
+  <Step title="Check Platform">
+    On web, always redirect to landing
+  </Step>
+  
+  <Step title="Route by Role">
+    On mobile, route authenticated users to their role-specific dashboard
+  </Step>
+  
+  <Step title="Default to Landing">
+    Unauthenticated users go to landing page
+  </Step>
+</Steps>
+
+## Route Organization Best Practices
+
+<Check>**Use Route Groups** for logical organization without URL pollution</Check>
+<Check>**Implement Layout Guards** to protect authenticated routes</Check>
+<Check>**Centralize Navigation Logic** in layout files</Check>
+<Check>**Use Type-Safe Navigation** with TypeScript</Check>
+<Check>**Leverage File Structure** for automatic route generation</Check>
+
+## Common Patterns
+
+### Conditional Rendering Based on Auth
+
+```tsx
+import { useAuth } from '@/src/hooks/useAuth';
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  
+  return (
+    <View>
+      {user?.role === 'admin' && <AdminPanel />}
+      {user?.role === 'editor' && <EditorPanel />}
+    </View>
+  );
+}
+```
+
+### Protected Link Navigation
+
+```tsx
+import { Link } from 'expo-router';
+
+<Link href="/(main)/dashboard/admin">
+  <Text>Go to Admin Dashboard</Text>
+</Link>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/architecture/authentication">
+    Learn about JWT authentication and session management
+  </Card>
+  
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Understand the complete directory organization
+  </Card>
+</CardGroup>

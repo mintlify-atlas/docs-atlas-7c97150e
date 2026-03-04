@@ -1,0 +1,331 @@
+---
+title: 'Project Structure'
+description: 'Detailed breakdown of the directory structure and organization'
+icon: 'folder-tree'
+---
+
+The RIS Gran Chimú mobile app follows a well-organized structure that separates routing, components, business logic, and services.
+
+## Directory Overview
+
+```text
+├── app/                  # Routes of the App (Expo Router)
+│   ├── (auth)/           # Login and Recovery screens
+│   ├── (main)/           # Centralized dashboard by roles
+│   │   └── dashboard/    # Admin, Editor, and Management
+│   ├── landing/          # Public screens (Home, News)
+│   │   ├── index.tsx     # Landing home with news carousel
+│   │   ├── noticias.tsx  # Institutional news viewer
+│   │   └── contacto.tsx  # Citizen service channels
+│   ├── external/         # External public pages
+│   ├── _layout.tsx       # Global navigation configuration
+│   └── index.tsx         # Entry point (Main Landing)
+├── src/
+│   ├── components/       # Shared UI elements
+│   ├── hooks/            # useAuth, useDebounce, useThemeColor
+│   ├── services/         # apiClient (Axios) and authService
+│   ├── types/            # TypeScript definitions (Auth, Noticia)
+│   └── context/          # Permissions and Preferences contexts
+├── assets/               # Logos, Images, and Splash Screen
+├── app.json              # Expo and EAS configuration
+└── package.json          # Dependencies and build scripts
+```
+
+## app/ Directory
+
+The `app/` directory contains all routes and screens using Expo Router's file-based routing system.
+
+### Route Groups
+
+<AccordionGroup>
+  <Accordion title="(auth)/ - Authentication Routes">
+    Contains login and authentication-related screens.
+    
+    **Files:**
+    - `login-admin.tsx` - Admin/Editor login screen
+    
+    <Info>Route groups in parentheses like `(auth)` don't affect the URL path.</Info>
+  </Accordion>
+  
+  <Accordion title="(main)/ - Protected Dashboard Routes">
+    Protected routes that require authentication. Contains role-based dashboards.
+    
+    **Structure:**
+    ```text
+    (main)/
+    ├── _layout.tsx                    # Auth guard for protected routes
+    └── dashboard/
+        ├── index.tsx                  # Unified dashboard entry
+        ├── admin/
+        │   ├── index.tsx             # Admin dashboard
+        │   └── users/index.tsx       # User management
+        ├── editor/
+        │   └── index.tsx             # Editor dashboard
+        └── manage/
+            ├── establecimientos/     # Health facilities management
+            ├── estrategias/          # Health strategies management
+            ├── normas/               # Regulations management
+            ├── noticias/             # News management
+            ├── roles/                # Role management
+            └── servicios/            # Services management
+    ```
+    
+    The `_layout.tsx` file acts as an authentication guard:
+    
+    ```tsx app/(main)/_layout.tsx
+    export default function MainLayout() {
+      const { user, loading } = useAuth();
+      const router = useRouter();
+
+      useEffect(() => {
+        if (!loading && !user) {
+          console.log('❌ [MainLayout] No user → redirecting to home..');
+          router.replace('/landing');
+        }
+      }, [user, loading]);
+
+      if (loading) return null;
+
+      return (
+        <PermissionProvider>
+          <Stack />
+        </PermissionProvider>
+      );
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="landing/ - Public Routes">
+    Public-facing screens accessible without authentication.
+    
+    **Files:**
+    - `index.tsx` - Landing home with news carousel
+    - `estrategias.tsx` - Health strategies information
+    - `establecimientos.tsx` - Health facilities directory
+    - `transparencia.tsx` - Transparency portal
+    - `contacto.tsx` - Contact information
+    - `_layout.tsx` - Tab navigation layout
+    
+    Uses tab navigation with custom icons from `lucide-react-native`.
+  </Accordion>
+  
+  <Accordion title="external/ - External Pages">
+    Standalone pages for specific public information.
+    
+    **Files:**
+    - `normas-publicas.tsx` - Public regulations viewer
+  </Accordion>
+</AccordionGroup>
+
+### Root Files
+
+<CodeGroup>
+```tsx app/_layout.tsx
+import { AuthProvider } from '@/src/hooks/useAuth';
+import * as NavigationBar from 'expo-navigation-bar';
+import { Slot } from 'expo-router';
+
+export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync('white');
+      NavigationBar.setButtonStyleAsync('dark');
+    }
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <Slot />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+```
+
+```tsx app/index.tsx
+export default function Index() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (Platform.OS === 'web') {
+        router.replace('/landing');
+      } else {
+        if (user) {
+          if (user.role === 'admin') {
+            router.replace('/(main)/dashboard/admin');
+          } else if (user.role === 'editor') {
+            router.replace('/(main)/dashboard/editor');
+          }
+        } else {
+          router.replace('/landing');
+        }
+      }
+    }
+  }, [user, loading]);
+
+  return loading ? <LoadingView /> : null;
+}
+```
+</CodeGroup>
+
+## src/ Directory
+
+The `src/` directory contains all business logic, components, and utilities.
+
+### components/
+
+Reusable UI components shared across the app.
+
+**Files:**
+- `ThemedText.tsx` - Text component with theme support
+- `ThemedView.tsx` - View component with theme support
+- `dashboard/` - Dashboard-specific components
+
+### hooks/
+
+Custom React hooks for reusable logic.
+
+<CardGroup cols={2}>
+  <Card title="useAuth.tsx" icon="lock">
+    Authentication state management, login/logout, token lifecycle
+  </Card>
+  
+  <Card title="useDebounce.ts" icon="clock">
+    Debounce values for search inputs
+  </Card>
+  
+  <Card title="useThemeColor.ts" icon="palette">
+    Theme color management
+  </Card>
+  
+  <Card title="useFetchNormas.ts" icon="file-lines">
+    Fetch and manage regulations data
+  </Card>
+  
+  <Card title="useColorScheme.ts" icon="sun-moon">
+    Detect system color scheme
+  </Card>
+</CardGroup>
+
+### services/
+
+API clients and external service integrations.
+
+**Files:**
+- `apiClient.ts` - Axios instance with base configuration and token management
+- `authService.ts` - Authentication service utilities
+
+```typescript src/services/apiClient.ts
+const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+  }
+};
+```
+
+### types/
+
+TypeScript type definitions for type safety.
+
+**Files:**
+- `auth.ts` - Authentication types (LoginResponse, User)
+- `Norma.ts` - Regulation types
+- `User.ts` - User model types
+
+```typescript src/types/auth.ts
+export type LoginResponse = {
+  user: {
+    id: number;
+    nombre: string;
+    email: string;
+    rol: 'admin' | 'editor';
+  };
+  token: string;
+};
+```
+
+### context/
+
+React Context providers for global state.
+
+**Files:**
+- `PermissionContext.tsx` - Role-based permission management
+
+## assets/ Directory
+
+Static assets including images, logos, and splash screens.
+
+```text
+assets/
+├── images/
+├── icons/
+└── splash/
+```
+
+## Configuration Files
+
+### app.json
+
+Expo and EAS Build configuration:
+
+```json
+{
+  "expo": {
+    "name": "RIS Gran Chimú",
+    "slug": "ris-gran-chimu",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android", "web"]
+  }
+}
+```
+
+### package.json
+
+Dependencies and scripts:
+
+```json
+{
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  }
+}
+```
+
+## Best Practices
+
+<Check>**Route Organization**: Use route groups `(groupName)` to organize screens without affecting URLs</Check>
+<Check>**Component Reusability**: Keep shared components in `src/components/`</Check>
+<Check>**Type Safety**: Define types in `src/types/` and import across the app</Check>
+<Check>**Service Layer**: Centralize API calls in `src/services/`</Check>
+<Check>**Custom Hooks**: Extract reusable logic into hooks in `src/hooks/`</Check>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Routing" icon="route" href="/architecture/routing">
+    Learn about Expo Router implementation
+  </Card>
+  
+  <Card title="Authentication" icon="lock" href="/architecture/authentication">
+    Understand the authentication flow
+  </Card>
+</CardGroup>

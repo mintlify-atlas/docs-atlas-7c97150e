@@ -1,0 +1,274 @@
+---
+title: 'Components'
+description: 'Core UI components for theming and styling'
+icon: 'cube'
+---
+
+## Overview
+
+The RIS Gran Chimú app uses themed components that automatically adapt to light and dark mode. The two primary components are `ThemedText` and `ThemedView`, which provide consistent styling across the application.
+
+## ThemedText
+
+A text component that automatically adapts to the current color scheme.
+
+### Implementation
+
+```tsx src/components/ThemedText.tsx
+import { StyleSheet, Text, type TextProps } from 'react-native';
+import { useThemeColor } from '@/src/hooks/useThemeColor';
+
+export type ThemedTextProps = TextProps & {
+  lightColor?: string;
+  darkColor?: string;
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+};
+
+export function ThemedText({
+  style,
+  lightColor,
+  darkColor,
+  type = 'default',
+  ...rest
+}: ThemedTextProps) {
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+
+  return (
+    <Text
+      style={[
+        { color },
+        type === 'default' ? styles.default : undefined,
+        type === 'title' ? styles.title : undefined,
+        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
+        type === 'subtitle' ? styles.subtitle : undefined,
+        type === 'link' ? styles.link : undefined,
+        style,
+      ]}
+      {...rest}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  default: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  defaultSemiBold: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 32,
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  link: {
+    lineHeight: 30,
+    fontSize: 16,
+    color: '#0a7ea4',
+  },
+});
+```
+
+### Props
+
+<ParamField path="lightColor" type="string" optional>
+  Override color for light mode
+</ParamField>
+
+<ParamField path="darkColor" type="string" optional>
+  Override color for dark mode
+</ParamField>
+
+<ParamField path="type" type="'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link'" default="default">
+  Text variant with predefined styles
+</ParamField>
+
+### Text Types
+
+| Type | Font Size | Font Weight | Line Height | Use Case |
+|------|-----------|-------------|-------------|----------|
+| `default` | 16px | normal | 24px | Body text |
+| `defaultSemiBold` | 16px | 600 | 24px | Emphasized body text |
+| `title` | 32px | bold | 32px | Page titles |
+| `subtitle` | 20px | bold | - | Section headings |
+| `link` | 16px | normal | 30px | Clickable links (#0a7ea4) |
+
+### Usage Examples
+
+<CodeGroup>
+
+```tsx Basic Usage
+import { ThemedText } from '@/src/components/ThemedText';
+
+export default function Screen() {
+  return (
+    <ThemedText>This is regular text</ThemedText>
+  );
+}
+```
+
+```tsx Title
+<ThemedText type="title">Dashboard</ThemedText>
+```
+
+```tsx Subtitle
+<ThemedText type="subtitle">Recent Activity</ThemedText>
+```
+
+```tsx Custom Colors
+<ThemedText 
+  lightColor="#333" 
+  darkColor="#fff"
+>
+  Custom colored text
+</ThemedText>
+```
+
+```tsx Link Style
+<ThemedText type="link" onPress={() => navigation.navigate('Details')}>
+  View Details
+</ThemedText>
+```
+
+</CodeGroup>
+
+---
+
+## ThemedView
+
+A view container that automatically adapts its background color to the current color scheme.
+
+### Implementation
+
+```tsx src/components/ThemedView.tsx
+import { View, type ViewProps } from 'react-native';
+import { useThemeColor } from '@/src/hooks/useThemeColor';
+
+export type ThemedViewProps = ViewProps & {
+  lightColor?: string;
+  darkColor?: string;
+};
+
+export function ThemedView({ 
+  style, 
+  lightColor, 
+  darkColor, 
+  ...otherProps 
+}: ThemedViewProps) {
+  const backgroundColor = useThemeColor(
+    { light: lightColor, dark: darkColor }, 
+    'background'
+  );
+
+  return <View style={[{ backgroundColor }, style]} {...otherProps} />;
+}
+```
+
+### Props
+
+<ParamField path="lightColor" type="string" optional>
+  Override background color for light mode
+</ParamField>
+
+<ParamField path="darkColor" type="string" optional>
+  Override background color for dark mode
+</ParamField>
+
+### Usage Examples
+
+<CodeGroup>
+
+```tsx Basic Container
+import { ThemedView } from '@/src/components/ThemedView';
+import { ThemedText } from '@/src/components/ThemedText';
+
+export default function Screen() {
+  return (
+    <ThemedView style={{ flex: 1, padding: 20 }}>
+      <ThemedText type="title">Welcome</ThemedText>
+      <ThemedText>This view adapts to light/dark mode</ThemedText>
+    </ThemedView>
+  );
+}
+```
+
+```tsx Custom Background Colors
+<ThemedView 
+  lightColor="#f5f5f5" 
+  darkColor="#1a1a1a"
+  style={{ padding: 16, borderRadius: 8 }}
+>
+  <ThemedText>Card content</ThemedText>
+</ThemedView>
+```
+
+```tsx Nested Themed Components
+<ThemedView style={{ flex: 1 }}>
+  <ThemedView 
+    lightColor="#fff" 
+    darkColor="#222"
+    style={{ padding: 20 }}
+  >
+    <ThemedText type="subtitle">Section Title</ThemedText>
+    <ThemedText>Section content goes here</ThemedText>
+  </ThemedView>
+</ThemedView>
+```
+
+</CodeGroup>
+
+---
+
+## Color Theme System
+
+Both components use the `useThemeColor` hook which references the Colors constant:
+
+```tsx src/constants/Colors.ts
+export const Colors = {
+  light: {
+    text: '#11181C',
+    background: '#fff',
+    tint: '#0a7ea4',
+    icon: '#687076',
+    tabIconDefault: '#687076',
+    tabIconSelected: '#0a7ea4',
+  },
+  dark: {
+    text: '#ECEDEE',
+    background: '#151718',
+    tint: '#fff',
+    icon: '#9BA1A6',
+    tabIconDefault: '#9BA1A6',
+    tabIconSelected: '#fff',
+  },
+};
+```
+
+<Note>
+  The theme automatically switches based on the device's system preference. Users can also override this in the app settings.
+</Note>
+
+## Best Practices
+
+<Card title="Use Themed Components Consistently" icon="palette">
+  Always use `ThemedText` and `ThemedView` instead of raw `Text` and `View` components to ensure proper theme support.
+</Card>
+
+<Card title="Leverage Type Variants" icon="text">
+  Use the predefined `type` prop on `ThemedText` for consistent typography instead of custom styles.
+</Card>
+
+<Card title="Override Colors Sparingly" icon="eye-dropper">
+  Only use `lightColor` and `darkColor` props when you need specific branding colors that differ from the theme.
+</Card>
+
+<Card title="Test Both Themes" icon="moon">
+  Always test your UI in both light and dark modes to ensure readability and proper contrast.
+</Card>

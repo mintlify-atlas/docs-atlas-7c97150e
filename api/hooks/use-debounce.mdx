@@ -1,0 +1,145 @@
+---
+title: 'useDebounce'
+description: 'Debounce hook for delaying state updates until user stops typing'
+icon: 'clock'
+---
+
+## Overview
+
+The `useDebounce` hook delays updating a value until after a specified delay has passed since the last change. This is particularly useful for search inputs, where you want to wait for the user to finish typing before making an API call.
+
+## Usage
+
+```tsx
+import { useState } from 'react';
+import { useDebounce } from '@/src/hooks/useDebounce';
+
+function SearchInput() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // This effect will only run when the user stops typing for 500ms
+  useEffect(() => {
+    if (debouncedSearchTerm) {
+      // Perform API call
+      searchAPI(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm]);
+
+  return (
+    <TextInput
+      value={searchTerm}
+      onChangeText={setSearchTerm}
+      placeholder="Search..."
+    />
+  );
+}
+```
+
+## Parameters
+
+<ParamField path="value" type="string" required>
+  The value to debounce. Typically a state variable that changes frequently (e.g., user input).
+</ParamField>
+
+<ParamField path="delay" type="number" required>
+  The delay in milliseconds to wait before updating the debounced value. Common values:
+  - `300` - Quick debounce for responsive UIs
+  - `500` - Standard debounce for search inputs
+  - `1000` - Longer debounce for expensive operations
+</ParamField>
+
+## Return Value
+
+<ResponseField name="debouncedValue" type="string">
+  The debounced value that updates only after the specified delay has passed since the last change to `value`.
+</ResponseField>
+
+## Type Signature
+
+```typescript
+function useDebounce(value: string, delay: number): string
+```
+
+## How It Works
+
+1. The hook creates internal state for the debounced value
+2. When `value` changes, it sets a timer for `delay` milliseconds
+3. If `value` changes again before the timer expires, the timer is cleared and a new one is created
+4. When the timer expires without interruption, the debounced value is updated
+5. The cleanup function ensures timers are cleared when the component unmounts
+
+## Common Use Cases
+
+### Search Input
+
+Delay API calls until the user stops typing:
+
+```tsx
+const [query, setQuery] = useState('');
+const debouncedQuery = useDebounce(query, 500);
+
+useEffect(() => {
+  if (debouncedQuery) {
+    fetchSearchResults(debouncedQuery);
+  }
+}, [debouncedQuery]);
+```
+
+### Form Validation
+
+Validate input after user pauses:
+
+```tsx
+const [email, setEmail] = useState('');
+const debouncedEmail = useDebounce(email, 300);
+
+useEffect(() => {
+  if (debouncedEmail) {
+    validateEmail(debouncedEmail);
+  }
+}, [debouncedEmail]);
+```
+
+### Auto-Save
+
+Save changes after user stops editing:
+
+```tsx
+const [content, setContent] = useState('');
+const debouncedContent = useDebounce(content, 1000);
+
+useEffect(() => {
+  if (debouncedContent) {
+    autoSave(debouncedContent);
+  }
+}, [debouncedContent]);
+```
+
+## Performance Benefits
+
+- **Reduces API calls**: Instead of calling the API on every keystroke, wait until the user finishes typing
+- **Improves performance**: Prevents unnecessary re-renders and computations
+- **Better UX**: Reduces server load and potential rate limiting issues
+
+## Implementation
+
+The hook uses React's `useState` and `useEffect` to manage the debounced value:
+
+```typescript
+import { useState, useEffect } from 'react';
+
+export function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+```

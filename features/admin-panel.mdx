@@ -1,0 +1,409 @@
+---
+title: 'Admin Panel'
+description: 'Comprehensive administrative features for user management and content moderation'
+icon: 'shield-halved'
+---
+
+## Overview
+
+The Admin Panel provides authenticated administrators and editors with tools to manage users, publish content, and maintain the health information ecosystem. All admin features require specific permissions validated through the `PermissionContext`.
+
+## User Management
+
+The user management interface is located at `app/(main)/dashboard/admin/users/index.tsx`.
+
+### Features
+
+<Tabs>
+  <Tab title="Create Users">
+    Administrators can create new users with specific roles:
+
+    ```typescript app/(main)/dashboard/admin/users/index.tsx:177-205
+    const saveUser = async () => {
+      if (!form.nombre || !form.email) {
+        Alert.alert('Campos requeridos', 'Nombre, correo y contraseña son obligatorios');
+        return;
+      }
+
+      if (!validatePasswords()) return;
+
+      if (!editingUser) {
+        // Require re-authentication for creating users
+        setReauthAction('create');
+        setReauthVisible(true);
+        return;
+      }
+
+      const userData = {
+        ...form,
+        createdBy: currentUser?.name,
+        password: form.password || undefined,
+      };
+
+      const res = await apiClient.post<User>('/users', userData);
+      setUsers((prev) => [...prev, res.data]);
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Edit Users">
+    Update existing user information:
+    
+    ```typescript
+    const openEditModal = (user: User) => {
+      setEditingUser(user);
+      setForm({
+        nombre: user.nombre,
+        email: user.email,
+        password: '',
+        confirmPassword: '',
+        rol: user.rol,
+      });
+      setModalVisible(true);
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Delete Users">
+    Delete users with re-authentication:
+    
+    ```typescript app/(main)/dashboard/admin/users/index.tsx:274-283
+    const deleteUser = (id: number, nombre: string) => {
+      if (id === Number(currentUser?.id)) {
+        Alert.alert('Acción no permitida', 'No puedes eliminarte a ti mismo');
+        return;
+      }
+
+      setReauthAction('delete');
+      setReauthTargetId(id);
+      setReauthVisible(true);
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Re-Authentication System
+
+<Warning>
+**Security Feature:** Critical operations (create/delete users) require password re-authentication to prevent unauthorized actions.
+</Warning>
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:227-235
+const verifyCurrentUserPassword = async (password: string): Promise<boolean> => {
+  try {
+    const response = await apiClient.post<{ valid: boolean }>('/auth/verify', { password });
+    return response.data.valid === true;
+  } catch (error) {
+    console.error('Error al verificar contraseña:', error);
+    return false;
+  }
+};
+```
+
+The re-authentication modal appears when:
+1. Creating a new user
+2. Deleting an existing user
+
+### User Search & Filtering
+
+Real-time search across multiple fields:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:324-333
+data={users.filter((user) => {
+  const query = search.toLowerCase().trim();
+  if (!query) return true;
+  return (
+    user.id.toString().includes(query) ||
+    user.nombre.toLowerCase().includes(query) ||
+    user.email.toLowerCase().includes(query) ||
+    user.rol.toLowerCase().includes(query)
+  );
+})}
+```
+
+### Role Assignment
+
+Roles are loaded dynamically from the backend:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:87-96
+const loadRoles = async () => {
+  try {
+    const res = await apiClient.get<any[]>('/roles');
+    setRoles(res.data);
+  } catch (error) {
+    console.log('Error cargando roles', error);
+  }
+};
+```
+
+Role selection UI with visual feedback:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:437-452
+<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+  {roles.filter(r => r.activo === 1).map((role) => (
+    <TouchableOpacity
+      key={role.id}
+      style={[
+        styles.pickerOption,
+        form.rol === role.nombre && styles.pickerSelected
+      ]}
+      onPress={() => setForm({ ...form, rol: role.nombre })}
+    >
+      <Text style={styles.pickerText}>{role.nombre}</Text>
+      {form.rol === role.nombre && <Check color="#007AFF" size={16} />}
+    </TouchableOpacity>
+  ))}
+</View>
+```
+
+### Audit Trail
+
+Each user record tracks creation and modification history:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:547-593
+<View style={styles.detailsSection}>
+  {/* Created */}
+  <View style={styles.detailRow}>
+    <Text style={styles.label}>Creado:</Text>
+    <Text style={styles.value}>
+      {new Date(user.created_at).toLocaleString('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })}
+    </Text>
+  </View>
+  <View style={styles.detailRow}>
+    <Text style={styles.label}>Por:</Text>
+    <Text style={styles.value}>
+      {typeof user.created_by === 'string' ? user.created_by : `ID: ${user.created_by}`}
+    </Text>
+  </View>
+
+  {/* Updated */}
+  {user.updated_at && (
+    <>
+      <View style={styles.detailRow}>
+        <Text style={styles.label}>Editado:</Text>
+        <Text style={styles.value}>
+          {new Date(user.updated_at).toLocaleString('es-PE', {...})}
+        </Text>
+      </View>
+    </>
+  )}
+</View>
+```
+
+## Content Management
+
+All content management routes follow a similar pattern and are located under `app/(main)/dashboard/manage/`.
+
+### Available Content Types
+
+<CardGroup cols={2}>
+  <Card title="Noticias" icon="newspaper">
+    **Route:** `/manage/noticias`
+    
+    Publish institutional news with:
+    - Title and description
+    - Featured images
+    - Facebook link integration
+    - Publication date
+  </Card>
+  
+  <Card title="Establecimientos" icon="hospital">
+    **Route:** `/manage/establecimientos`
+    
+    Register health facilities with:
+    - Name and address
+    - Phone number
+    - Google Maps link
+    - Associated services
+  </Card>
+  
+  <Card title="Servicios" icon="stethoscope">
+    **Route:** `/manage/servicios`
+    
+    Configure medical services:
+    - Service name
+    - Description
+    - Availability
+  </Card>
+  
+  <Card title="Estrategias" icon="bullseye">
+    **Route:** `/manage/estrategias`
+    
+    Manage health programs:
+    - Strategy title
+    - Detailed description
+    - Target population
+  </Card>
+  
+  <Card title="Normas" icon="file-lines">
+    **Route:** `/manage/normas`
+    
+    Administer regulations:
+    - Document title
+    - Official links
+    - Publication date
+  </Card>
+  
+  <Card title="Roles" icon="shield">
+    **Route:** `/manage/roles`
+    
+    Configure permissions:
+    - Role name
+    - Permission assignments
+    - Active status
+  </Card>
+</CardGroup>
+
+## Permission Validation
+
+All admin features validate permissions both on frontend and backend:
+
+### Frontend Permission Check
+
+```typescript src/context/PermissionContext.tsx:50-53
+const hasPermission = (code: string) => {
+  if (user?.role === 'admin') return true;
+  return permissions.includes(code);
+}
+```
+
+### Backend Validation
+
+The backend API validates permissions on every protected endpoint using JWT tokens and role-based access control.
+
+<Tip>
+**Best Practice:** Frontend permission checks improve UX by hiding unavailable features, but server-side validation ensures security.
+</Tip>
+
+## Role Color System
+
+Visual role identification using deterministic colors:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:30-52
+const getRoleColor = (role: string) => {
+  switch (role.toLowerCase()) {
+    case 'admin': return '#007AFF'; // Azure
+    case 'editor': return '#5856D6'; // Purple
+    case 'user': return '#6c757d'; // Gray
+    default:
+      // Generate deterministic color from role name
+      let hash = 0;
+      for (let i = 0; i < role.length; i++) {
+        hash = role.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const colors = [
+        '#FF9500', '#FF3B30', '#34C759', '#00C7BE',
+        '#AF52DE', '#FF2D55', '#A2845E', '#5AC8FA',
+      ];
+      return colors[Math.abs(hash) % colors.length];
+  }
+};
+```
+
+## Password Management
+
+### Password Visibility Toggle
+
+Secure password input with show/hide functionality:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:380-398
+<View style={styles.passwordInputContainer}>
+  <TextInput
+    style={styles.inputNoBorder}
+    value={form.password}
+    onChangeText={(text) => setForm({ ...form, password: text })}
+    placeholder="Contraseña"
+    secureTextEntry={!passwordVisible}
+  />
+  <TouchableOpacity
+    style={styles.eyeButtonInInput}
+    onPress={() => setPasswordVisible(!passwordVisible)}
+  >
+    {passwordVisible ? (
+      <Eye color="#007AFF" size={18} />
+    ) : (
+      <EyeOff color="#6c757d" size={18} />
+    )}
+  </TouchableOpacity>
+</View>
+```
+
+### Password Confirmation
+
+Real-time password match validation:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:165-175
+const validatePasswords = (): boolean => {
+  if (!editingUser && !form.password) {
+    Alert.alert('Error', 'La contraseña es obligatoria para nuevos usuarios');
+    return false;
+  }
+  if (!editingUser && form.password !== form.confirmPassword) {
+    Alert.alert('Error', 'Las contraseñas no coinciden');
+    return false;
+  }
+  return true;
+};
+```
+
+## API Endpoints
+
+### User Management Endpoints
+
+| Method | Endpoint | Purpose | Permission |
+|--------|----------|---------|------------|
+| GET | `/users` | List all users | `manage_users` |
+| GET | `/users/:id` | Get user details | `manage_users` |
+| POST | `/users` | Create new user | `manage_users` |
+| PUT | `/users/:id` | Update user | `manage_users` |
+| DELETE | `/users/:id` | Delete user | `manage_users` |
+| POST | `/auth/verify` | Verify password | Authenticated |
+
+### Content Management Endpoints
+
+| Method | Endpoint | Purpose |
+|--------|----------|--------|
+| GET | `/roles` | List available roles |
+| GET | `/noticias` | List news (admin) |
+| POST | `/noticias` | Create news article |
+| GET | `/establecimientos` | List establishments (admin) |
+| POST | `/establecimientos` | Register facility |
+
+## Security Best Practices
+
+<Check>
+**Implemented Security Measures:**
+
+1. **Re-authentication** for critical operations
+2. **Permission validation** on every protected route
+3. **Audit trails** with created_by/updated_by fields
+4. **Self-deletion prevention** for logged-in users
+5. **JWT token validation** on backend
+</Check>
+
+## Error Handling
+
+Comprehensive error messages for common scenarios:
+
+```typescript app/(main)/dashboard/admin/users/index.tsx:202-204
+catch (error: any) {
+  Alert.alert('Error', error.response?.data?.message || 'No se pudo guardar el usuario');
+}
+```
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    Role-based navigation system
+  </Card>
+  <Card title="Authentication" icon="key" href="/architecture/authentication">
+    Login and session management
+  </Card>
+</CardGroup>

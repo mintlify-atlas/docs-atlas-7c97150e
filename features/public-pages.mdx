@@ -1,0 +1,207 @@
+---
+title: 'Public Pages'
+description: 'Landing pages and public-facing content accessible to all citizens without authentication'
+icon: 'globe'
+---
+
+## Overview
+
+The RIS Gran Chimú mobile app provides several public landing pages that citizens can access without authentication. These pages display essential health information, news, services, and transparency documents.
+
+## Landing Routes
+
+All public pages are located in the `app/landing/` directory:
+
+<CodeGroup>
+```typescript app/landing/index.tsx
+// Main landing page with news carousel and FAQs
+export default function HomeScreen() {
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
+  
+  const loadNoticias = async () => {
+    const res = await apiClient.get<Noticia[]>('/public/noticias', {
+      headers: { Authorization: undefined }
+    });
+    setNoticias(res.data);
+  };
+}
+```
+
+```typescript app/landing/establecimientos.tsx
+// Health establishments directory
+export default function EstablishmentsScreen() {
+  const loadEstablecimientos = async () => {
+    const res = await apiClient.get('/public/establecimientos');
+    setEstablecimientos(res.data);
+  };
+}
+```
+
+```typescript app/landing/estrategias.tsx
+// Health strategies and services
+export default function StrategiesScreen() {
+  const loadEstrategias = async () => {
+    const res = await apiClient.get<Estrategia[]>('/public/estrategias');
+    setEstrategias(res.data);
+  };
+  
+  const loadServicios = async () => {
+    const res = await apiClient.get<Servicio[]>('/public/servicios');
+    setServicios(res.data);
+  };
+}
+```
+</CodeGroup>
+
+## Available Public Pages
+
+### 1. Landing Home (index.tsx)
+
+**Route:** `/landing`
+
+**Features:**
+- News carousel with institutional updates
+- Frequent questions (FAQs) section
+- Hidden admin access button (revealed on scroll)
+- Direct integration with Facebook links
+
+<Tip>
+The home page includes an animated "Acceso Administradores" button that appears when scrolling up, providing secure access to the admin login screen at `app/landing/index.tsx:188-196`.
+</Tip>
+
+### 2. Health Establishments (establecimientos.tsx)
+
+**Route:** `/landing/establecimientos`
+
+**Features:**
+- List of all health centers and hospitals
+- Address, phone, and map links for each facility
+- Service badges showing available medical services
+- Direct map integration via Google Maps links
+
+```typescript
+const openMapLink = (url: string | null | undefined) => {
+  if (!url) return;
+  const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+  Linking.openURL(formattedUrl);
+};
+```
+
+### 3. Strategies & Services (estrategias.tsx)
+
+**Route:** `/landing/estrategias`
+
+**Features:**
+- Health strategies with expandable descriptions
+- Grid view of available medical services
+- Dynamic icons from `healthicons-react-native` and `lucide-react-native`
+- Color-coded categories for easy navigation
+
+### 4. Transparency (transparencia.tsx)
+
+**Route:** `/landing/transparencia`
+
+**Features:**
+- Links to government transparency portals
+- Information access request forms
+- Citizen complaint platform
+- Internal regulations and official documents
+
+```typescript
+const transparencyOptions: TransparencyOption[] = [
+  {
+    title: 'Portal de Transparencia',
+    type: 'external',
+    url: 'https://www.transparencia.gob.pe/enlaces/...'
+  },
+  {
+    title: 'Normas de la Entidad',
+    type: 'internal',
+    route: '../external/normas-publicas'
+  }
+];
+```
+
+### 5. Contact (contacto.tsx)
+
+**Route:** `/landing/contacto`
+
+**Features:**
+- Contact information for health facilities
+- Citizen service channels
+- Social media links
+
+## Public API Endpoints
+
+All public pages consume unauthenticated endpoints:
+
+| Endpoint | Purpose | Page |
+|----------|---------|------|
+| `/public/noticias` | Fetch news articles | Landing Home |
+| `/public/establecimientos` | Get health facilities | Establishments |
+| `/public/estrategias` | Load health strategies | Strategies |
+| `/public/servicios` | Get medical services | Strategies |
+
+<Note>
+Public endpoints explicitly remove the `Authorization` header to prevent 401 errors if an expired token exists in storage (`app/landing/index.tsx:77-79`).
+</Note>
+
+## News Carousel Implementation
+
+The landing page features a horizontal scrolling news carousel:
+
+```typescript app/landing/index.tsx:213-233
+<FlatList
+  data={noticias}
+  renderItem={renderNoticiaItem}
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  snapToInterval={CARD_WIDTH + 16}
+  snapToAlignment="start"
+  decelerationRate="fast"
+  keyExtractor={(item) => item.id?.toString() || item.titulo.slice(0, 10)}
+/>
+```
+
+Each news card displays:
+- Featured image or placeholder
+- Title and description
+- Publication date
+- Optional Facebook link button
+
+## Navigation Structure
+
+```mermaid
+graph TD
+    A[App Entry] --> B[/landing]
+    B --> C[News Carousel]
+    B --> D[FAQs]
+    B --> E[Hidden Admin Button]
+    E --> F[/(auth)/login-admin]
+```
+
+## Styling Guidelines
+
+Public pages follow a consistent design system:
+
+- **Primary Color:** `#0066CC` (header backgrounds)
+- **Card Background:** `#FFFFFF` with subtle shadows
+- **Text Hierarchy:**
+  - Titles: `28px`, `fontWeight: 800`
+  - Subtitles: `15px`, light color
+  - Body: `14px`, `#4B5563`
+
+<Check>
+**Accessibility:** All public pages use high-contrast colors and readable font sizes to comply with MINSA (Ministry of Health) accessibility standards mentioned in `README.md:19`.
+</Check>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Dashboard" icon="gauge" href="/features/dashboard">
+    Role-based admin dashboard
+  </Card>
+  <Card title="Offline Mode" icon="wifi-slash" href="/features/offline-mode">
+    Session persistence with AsyncStorage
+  </Card>
+</CardGroup>

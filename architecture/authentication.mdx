@@ -1,0 +1,482 @@
+---
+title: 'Authentication'
+description: 'JWT-based authentication with token management and auto-refresh'
+icon: 'lock'
+---
+
+The RIS Gran Chimú app implements a robust JWT-based authentication system with secure token storage, automatic expiration handling, and offline validation.
+
+## Authentication Flow
+
+<Steps>
+  <Step title="User Login">
+    User enters credentials on the login screen
+  </Step>
+  
+  <Step title="API Authentication">
+    Credentials sent to backend API `/auth/login`
+  </Step>
+  
+  <Step title="Token Storage">
+    JWT token and user data stored in AsyncStorage
+  </Step>
+  
+  <Step title="Token Attachment">
+    Token automatically attached to all subsequent API requests
+  </Step>
+  
+  <Step title="Session Validation">
+    On app startup, validate stored token with backend
+  </Step>
+  
+  <Step title="Auto Logout">
+    Schedule automatic logout when token expires
+  </Step>
+</Steps>
+
+## Core Components
+
+### AuthProvider
+
+The `AuthProvider` is a React Context provider that manages global authentication state.
+
+```tsx src/hooks/useAuth.tsx
+type User = {
+  id: string;
+  name: string;
+  role: UserRole;
+};
+
+type AuthContextType = {
+  user: User | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  loading: boolean;
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+```
+
+### useAuth Hook
+
+Custom hook to access authentication state and methods:
+
+```tsx
+import { useAuth } from '@/src/hooks/useAuth';
+
+export default function Dashboard() {
+  const { user, signIn, signOut, loading } = useAuth();
+  
+  if (loading) return <LoadingScreen />;
+  if (!user) return <LoginScreen />;
+  
+  return <DashboardContent user={user} />;
+}
+```
+
+## Token Storage
+
+The app uses **AsyncStorage** for persistent token storage across app sessions.
+
+### Storage Key
+
+```typescript src/hooks/useAuth.tsx
+const USER_STORAGE_KEY = '@ris_gran_chimu_user';
+```
+
+### Storing Authentication Data
+
+```typescript src/hooks/useAuth.tsx
+const signIn = async (email: string, password: string) => {
+  setLoading(true);
+  try {
+    const response = await apiClient.post<LoginResponse>('/auth/login', { 
+      email, 
+      password 
+    });
+    const { user: userData, token } = response.data;
+
+    // Map backend fields to frontend model
+    const mappedUser: User = {
+      id: String(userData.id),
+      name: userData.nombre || 'Usuario',
+      role: userData.rol as UserRole,
+    };
+
+    // Store in AsyncStorage
+    await AsyncStorage.setItem(
+      USER_STORAGE_KEY,
+      JSON.stringify({ user: mappedUser, token })
+    );
+
+    setUser(mappedUser);
+    setAuthToken(token);
+    scheduleExpiry(token);
+
+    // Redirect to dashboard
+    router.replace('/(main)/dashboard');
+  } catch (error) {
+    // Handle error
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+### Loading Stored Session
+
+On app startup, the stored session is loaded and validated:
+
+```typescript src/hooks/useAuth.tsx
+const loadUser = async () => {
+  try {
+    const saved = await AsyncStorage.getItem(USER_STORAGE_KEY);
+    
+    if (!saved) {
+      console.log('🔍 No saved session');
+      return;
+    }
+
+    const parsed = JSON.parse(saved);
+    const { user: storedUser, token } = parsed;
+
+    if (!storedUser || !token) {
+      console.log('⚠️ Incomplete data in storage');
+      return;
+    }
+
+    // Set token in API client
+    setAuthToken(token);
+
+    // Validate with backend
+    try {
+      await apiClient.get('/auth/me');
+      setUser(storedUser);
+      scheduleExpiry(token);
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        Alert.alert('Sesión expirada', 'Tu sesión ha caducado.');
+        await signOut();
+        return;
+      }
+
+      // Validate locally if backend fails
+      const payload = decodeJwt(token);
+      const now = Math.floor(Date.now() / 1000);
+      if (payload?.exp && payload.exp < now) {
+        Alert.alert('Sesión expirada', 'Tu sesión ha caducado.');
+        await signOut();
+        return;
+      }
+
+      // Use local token if it appears valid
+      setUser(storedUser);
+      scheduleExpiry(token);
+    }
+  } catch (error) {
+    console.error('❌ Error loading user:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+<Info>
+The app implements a "Lazy Auth" system that validates tokens locally if the backend is unavailable, ensuring the app remains functional offline.
+</Info>
+
+## Token Management
+
+### Setting Auth Token
+
+The token is automatically attached to all API requests via Axios interceptors:
+
+```typescript src/services/apiClient.ts
+import axios from 'axios';
+
+const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 [setAuthToken] Header configured with token');
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔓 [setAuthToken] Header removed');
+  }
+};
+```
+
+<CodeGroup>
+```typescript Setting Token
+// After successful login
+setAuthToken(token);
+
+// Now all requests include: Authorization: Bearer <token>
+await apiClient.get('/noticias');
+await apiClient.post('/manage/noticias', data);
+```
+
+```typescript Removing Token
+// On logout
+setAuthToken(null);
+
+// Authorization header is removed from all requests
+```
+</CodeGroup>
+
+## Token Expiration Handling
+
+The app decodes JWT tokens to extract expiration time and schedules automatic logout.
+
+### JWT Decoding
+
+```typescript src/hooks/useAuth.tsx
+const decodeJwt = (token: string): { exp?: number } | null => {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+};
+```
+
+### Scheduling Expiration
+
+```typescript src/hooks/useAuth.tsx
+const expiryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+const scheduleExpiry = (token: string | null) => {
+  if (!token) return;
+  clearExpiry();
+
+  const payload = decodeJwt(token);
+  if (!payload?.exp) return;
+
+  const now = Math.floor(Date.now() / 1000);
+  const delayMs = (payload.exp - now) * 1000;
+
+  if (delayMs <= 0) {
+    Alert.alert('Sesión expirada', 'Tu sesión ha caducado.', [
+      { text: 'Aceptar', onPress: signOut },
+    ]);
+    return;
+  }
+
+  expiryTimeoutRef.current = setTimeout(() => {
+    Alert.alert('Sesión expirada', 'Tu sesión ha caducado.', [
+      { text: 'Aceptar', onPress: signOut },
+    ]);
+  }, delayMs);
+};
+
+const clearExpiry = () => {
+  if (expiryTimeoutRef.current) {
+    clearTimeout(expiryTimeoutRef.current);
+    expiryTimeoutRef.current = null;
+  }
+};
+```
+
+<Warning>
+Always clear the expiry timeout when logging out or unmounting to prevent memory leaks.
+</Warning>
+
+## Sign Out
+
+The sign out process clears all authentication state:
+
+```typescript src/hooks/useAuth.tsx
+const signOut = async () => {
+  clearExpiry();
+  setUser(null);
+  
+  try {
+    await AsyncStorage.removeItem(USER_STORAGE_KEY);
+  } catch (e) {
+    console.warn('Error removing user storage on signOut', e);
+  }
+  
+  delete apiClient.defaults.headers.common['Authorization'];
+  router.replace('/landing');
+};
+```
+
+## Handling 401 Responses
+
+While not currently implemented as an interceptor, the app handles 401 responses during token validation:
+
+```typescript src/hooks/useAuth.tsx
+try {
+  await apiClient.get('/auth/me');
+  setUser(storedUser);
+  scheduleExpiry(token);
+} catch (err: any) {
+  if (err.response?.status === 401) {
+    Alert.alert('Sesión expirada', 'Tu sesión ha caducado.', [
+      { text: 'Aceptar', onPress: signOut },
+    ]);
+    return;
+  }
+  // Handle other errors...
+}
+```
+
+<Tip>
+To globally handle 401 responses, you can add an Axios response interceptor in `apiClient.ts`:
+
+```typescript
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear auth and redirect to login
+      AsyncStorage.removeItem(USER_STORAGE_KEY);
+      router.replace('/landing');
+    }
+    return Promise.reject(error);
+  }
+);
+```
+</Tip>
+
+## Authentication Types
+
+Type definitions for authentication:
+
+```typescript src/types/auth.ts
+export type LoginResponse = {
+  user: {
+    id: number;
+    nombre: string;
+    email: string;
+    rol: 'admin' | 'editor';
+  };
+  token: string;
+};
+```
+
+## Role-Based Access
+
+The app supports role-based access control:
+
+### User Roles
+
+- **admin**: Full access to all features including user management
+- **editor**: Access to content management (news, facilities, services, etc.)
+
+### Checking Roles
+
+```tsx
+import { useAuth } from '@/src/hooks/useAuth';
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  
+  return (
+    <View>
+      {user?.role === 'admin' && (
+        <Link href="/(main)/dashboard/admin/users">
+          <Text>Manage Users</Text>
+        </Link>
+      )}
+      
+      {(user?.role === 'admin' || user?.role === 'editor') && (
+        <Link href="/(main)/dashboard/manage/noticias">
+          <Text>Manage News</Text>
+        </Link>
+      )}
+    </View>
+  );
+}
+```
+
+## Security Considerations
+
+<Warning>**Token Security**: While AsyncStorage is used for convenience, consider using `expo-secure-store` for production apps on native platforms.</Warning>
+
+<Check>**HTTPS Only**: Always use HTTPS for API communications to prevent token interception</Check>
+<Check>**Token Expiration**: Implement short-lived tokens (e.g., 1-2 hours) to minimize security risk</Check>
+<Check>**Refresh Tokens**: Consider implementing refresh tokens for better UX without compromising security</Check>
+<Check>**Logout on Background**: Optional feature to logout when app goes to background (currently disabled)</Check>
+
+## Offline Validation
+
+The app validates tokens locally when the backend is unavailable:
+
+```typescript src/hooks/useAuth.tsx
+// Validate locally if backend fails
+const payload = decodeJwt(token);
+const now = Math.floor(Date.now() / 1000);
+
+if (payload?.exp && payload.exp < now) {
+  // Token expired, force logout
+  Alert.alert('Sesión expirada', 'Tu sesión ha caducado.');
+  await signOut();
+  return;
+}
+
+// Token still valid, use it locally
+setUser(storedUser);
+scheduleExpiry(token);
+```
+
+<Info>
+This "Lazy Auth" approach ensures the app remains functional even when network connectivity is poor or the backend is temporarily unavailable.
+</Info>
+
+## Error Handling
+
+Comprehensive error handling during login:
+
+```typescript src/hooks/useAuth.tsx
+try {
+  const response = await apiClient.post('/auth/login', { email, password });
+  // Handle success...
+} catch (error: any) {
+  let errorMessage = 'No se pudo iniciar sesión.';
+
+  if (error.response) {
+    switch (error.response.status) {
+      case 401:
+        errorMessage = 'Correo o contraseña incorrectos.';
+        break;
+      case 404:
+        errorMessage = 'Usuario no encontrado.';
+        break;
+      case 500:
+        errorMessage = 'Error del servidor. Intenta más tarde.';
+        break;
+      default:
+        errorMessage = 'No se pudo conectar con el servidor.';
+    }
+  } else if (error.request) {
+    errorMessage = 'No se pudo conectar al servidor. Verifica tu conexión.';
+  }
+
+  Alert.alert('Error', errorMessage);
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Overview" icon="sitemap" href="/architecture/overview">
+    Return to architecture overview
+  </Card>
+  
+  <Card title="Routing" icon="route" href="/architecture/routing">
+    Learn about Expo Router navigation
+  </Card>
+</CardGroup>

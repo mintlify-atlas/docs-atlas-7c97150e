@@ -1,80 +1,280 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get the RIS Gran Chimú mobile app running on your device in 5 minutes
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
+Get the RIS Gran Chimú mobile app up and running on your device in just a few minutes.
 
-### Step 1: Set up your local environment
+## Prerequisites Checklist
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+Before starting, ensure you have:
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+- ✅ Node.js (v18+) and npm installed
+- ✅ Expo Go app installed on your mobile device
+- ✅ Source code downloaded or cloned
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  If you haven't set these up yet, visit the [Installation Guide](/installation) for detailed instructions.
 </Note>
+
+## Getting Started
+
+<Steps>
+  <Step title="Install Dependencies">
+    Navigate to the project directory and install all dependencies:
+    
+    ```bash
+    cd ris-gran-chimu
+    npm install
+    ```
+    
+    This typically takes 2-3 minutes depending on your internet connection.
+  </Step>
+
+  <Step title="Configure API Endpoint">
+    The app comes pre-configured to use the production backend. If you need to change it, edit `src/services/apiClient.ts`:
+    
+    ```typescript src/services/apiClient.ts
+    const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+    ```
+    
+    **Common configurations:**
+    
+    <CodeGroup>
+      ```typescript Production (Default)
+      const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+      ```
+      
+      ```typescript Local Backend
+      const BASE_URL = 'http://192.168.1.100:3000/api'; // Replace with your IP
+      ```
+      
+      ```typescript Custom Server
+      const BASE_URL = 'https://your-backend-url.com/api';
+      ```
+    </CodeGroup>
+    
+    <Warning>
+      When testing on a physical device, replace `localhost` with your computer's local network IP address (e.g., `192.168.1.100`).
+    </Warning>
+  </Step>
+
+  <Step title="Start the Development Server">
+    Launch the Expo development server:
+    
+    ```bash
+    npx expo start
+    ```
+    
+    You'll see output similar to:
+    
+    ```
+    Starting Metro Bundler
+    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+    █ ▄▄▄▄▄ █▀█ █▄▄▀▀▄█ ▄▄▄▄▄ █
+    █ █   █ █▀▀▀█ ▀█▄▄█ █   █ █
+    ...
+    
+    › Metro waiting on exp://192.168.1.100:8081
+    › Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
+    ```
+    
+    The server runs on port 8081 by default and provides a QR code for easy access.
+  </Step>
+
+  <Step title="Open on Your Device">
+    There are two ways to open the app:
+    
+    **Option 1: Scan QR Code (Recommended)**
+    
+    - **Android**: Open the Expo Go app and tap "Scan QR Code"
+    - **iOS**: Open the native Camera app and point it at the QR code
+    
+    **Option 2: Manual Connection**
+    
+    In the terminal, press:
+    - `a` - Open on Android emulator/device
+    - `i` - Open on iOS simulator
+    - `w` - Open in web browser
+    
+    <Note>
+      Make sure your computer and mobile device are on the same Wi-Fi network.
+    </Note>
+  </Step>
+
+  <Step title="Explore the App">
+    Once the app loads on your device, you can:
+    
+    - Browse institutional news on the landing page
+    - View health facility information
+    - Access official regulations and documents
+    - Test the login flow (if you have admin credentials)
+    
+    The app will automatically reload when you make changes to the code.
+  </Step>
+</Steps>
+
+## Development Commands
+
+Here are the most commonly used commands during development:
+
+<CodeGroup>
+  ```bash Start Development Server
+  npx expo start
+  ```
+  
+  ```bash Start with Cache Clear
+  npx expo start --clear
+  ```
+  
+  ```bash Android Only
+  npm run android
+  ```
+  
+  ```bash iOS Only
+  npm run ios
+  ```
+  
+  ```bash Web Only
+  npm run web
+  ```
+  
+  ```bash Run Linter
+  npm run lint
+  ```
+</CodeGroup>
+
+## Understanding the App Flow
+
+### For Public Users
+
+1. **Landing Page** (`app/index.tsx`): Main entry point showing institutional news carousel
+2. **News Section** (`app/landing/noticias.tsx`): Detailed news articles
+3. **Contact Page** (`app/landing/contacto.tsx`): Citizen service channels
+4. **Health Guide**: Information about facilities, services, and strategies
+
+### For Administrators
+
+1. **Login** (`app/(auth)/`): Authentication with JWT tokens
+2. **Dashboard** (`app/(main)/dashboard/`): Role-based control panel
+3. **Content Management**: Create and edit news, facilities, and services
+
+<Note>
+  The app implements "Lazy Auth" - it remains functional even when the backend is slow to respond, providing a better user experience.
+</Note>
+
+## API Client Configuration
+
+The app uses Axios with custom configuration for API calls. Here's how it works:
+
+```typescript src/services/apiClient.ts
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,  // 10 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+**Key features:**
+
+- **Automatic Token Injection**: JWT tokens are automatically added to requests
+- **Session Persistence**: Tokens are stored securely using `expo-secure-store`
+- **Auto-logout**: 401 responses trigger automatic redirect to login
+- **10-second timeout**: Requests fail gracefully if the server doesn't respond
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="QR code not scanning">
+    If the QR code doesn't work:
+    
+    1. Ensure your phone and computer are on the same Wi-Fi network
+    2. Try manually entering the URL shown in the terminal into Expo Go
+    3. Restart the development server with `npx expo start --clear`
+  </Accordion>
+
+  <Accordion title="App shows 'Unable to connect to server'">
+    Check your API configuration:
+    
+    1. Verify the `BASE_URL` in `src/services/apiClient.ts`
+    2. If using localhost, replace with your computer's IP address
+    3. Ensure the backend server is running and accessible
+    4. Test the API endpoint in a browser: `https://ris-gran-chimu-backend.vercel.app/api`
+  </Accordion>
+
+  <Accordion title="Metro bundler errors">
+    Clear the cache and restart:
+    
+    ```bash
+    # Clear Metro cache
+    npx expo start --clear
+    
+    # Or clear everything
+    rm -rf node_modules
+    npm install
+    npx expo start --clear
+    ```
+  </Accordion>
+
+  <Accordion title="App crashes on startup">
+    Check for common issues:
+    
+    1. Ensure all dependencies are installed: `npm install`
+    2. Verify Node.js version: `node --version` (should be 18+)
+    3. Check for TypeScript errors: `npx tsc --noEmit`
+    4. Review the error logs in the Expo Go app or terminal
+  </Accordion>
+</AccordionGroup>
+
+## Building for Production
+
+Once you're ready to create a production build:
+
+<Steps>
+  <Step title="Install EAS CLI">
+    ```bash
+    npm install -g eas-cli
+    ```
+  </Step>
+
+  <Step title="Build APK for Android">
+    ```bash
+    eas build -p android --profile preview
+    ```
+    
+    This creates an installable APK file that can be distributed to users.
+  </Step>
+</Steps>
+
+<Note>
+  The production build process requires an Expo account. Sign up at [expo.dev](https://expo.dev) if you don't have one.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap">
+    Understand the app's structure and file organization
+  </Card>
+  <Card title="API Integration" icon="plug">
+    Learn how to work with the backend API
+  </Card>
+  <Card title="Authentication" icon="shield">
+    Implement secure login and token management
+  </Card>
+  <Card title="Deployment" icon="rocket">
+    Deploy your app to production
+  </Card>
+</CardGroup>
+
+## Support
+
+If you encounter issues not covered in this guide, check:
+
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Documentation](https://reactnative.dev/)
+- Backend API repository for server-related issues

@@ -1,0 +1,196 @@
+---
+title: 'Architecture Overview'
+description: 'High-level architecture of the RIS Gran Chimú mobile application'
+icon: 'sitemap'
+---
+
+The RIS Gran Chimú mobile app is built using modern React Native technologies with a focus on performance, security, and maintainability.
+
+## Technology Stack
+
+The application leverages the following core technologies:
+
+<CardGroup cols={2}>
+  <Card title="Expo SDK 51+" icon="mobile">
+    Modern React Native framework with over-the-air updates and streamlined build process
+  </Card>
+  
+  <Card title="Expo Router" icon="route">
+    File-based routing system for type-safe navigation
+  </Card>
+  
+  <Card title="TypeScript" icon="code">
+    Strong typing for improved developer experience and code quality
+  </Card>
+  
+  <Card title="Axios" icon="plug">
+    HTTP client with interceptors for API communication
+  </Card>
+</CardGroup>
+
+## Architecture Principles
+
+### File-Based Routing
+
+The app uses **Expo Router** for navigation, providing automatic type-safe routing based on the file structure in the `app/` directory. This approach:
+
+- Eliminates manual route configuration
+- Provides automatic deep linking support
+- Enables better code splitting and lazy loading
+- Simplifies navigation logic
+
+### Component-Based Architecture
+
+The codebase follows a clear separation of concerns:
+
+```text
+app/              # Routes and screens (Expo Router)
+src/
+  components/     # Reusable UI components
+  hooks/          # Custom React hooks
+  services/       # API clients and external services
+  types/          # TypeScript type definitions
+  context/        # React Context providers
+```
+
+### Authentication Flow
+
+The app implements a JWT-based authentication system with the following features:
+
+<Steps>
+  <Step title="Token Storage">
+    Secure storage using `expo-secure-store` and `AsyncStorage` for persistent sessions
+  </Step>
+  
+  <Step title="Token Validation">
+    Automatic token validation on app startup and API requests
+  </Step>
+  
+  <Step title="Auto Logout">
+    Scheduled logout when JWT token expires
+  </Step>
+  
+  <Step title="Error Handling">
+    Global 401 response interceptor for expired sessions
+  </Step>
+</Steps>
+
+## API Integration Pattern
+
+The app communicates with the backend API using a centralized Axios instance located at `src/services/apiClient.ts`:
+
+```typescript src/services/apiClient.ts
+const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+### Token Management
+
+Authentication tokens are automatically attached to all requests:
+
+```typescript src/services/apiClient.ts
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 [setAuthToken] Header configured with token');
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔓 [setAuthToken] Header removed');
+  }
+};
+```
+
+## State Management
+
+The app uses React Context API for global state management:
+
+<CodeGroup>
+```tsx AuthProvider
+// app/_layout.tsx
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <Slot />
+      </AuthProvider>
+    </SafeAreaProvider>
+  );
+}
+```
+
+```tsx PermissionProvider
+// app/(main)/_layout.tsx
+export default function MainLayout() {
+  return (
+    <PermissionProvider>
+      <Stack />
+    </PermissionProvider>
+  );
+}
+```
+</CodeGroup>
+
+### Key Context Providers
+
+- **AuthProvider**: Manages user authentication state, login/logout, and token lifecycle
+- **PermissionProvider**: Handles role-based access control for admin and editor features
+
+## Platform Configuration
+
+The app includes platform-specific configuration for Android:
+
+```tsx app/_layout.tsx
+useEffect(() => {
+  if (Platform.OS === 'android') {
+    // White background for bottom navigation bar
+    NavigationBar.setBackgroundColorAsync('white');
+    // Dark icons (gray/black) to show on white background
+    NavigationBar.setButtonStyleAsync('dark');
+  }
+}, []);
+```
+
+## Offline Support
+
+The app implements a "Lazy Auth" system that maintains functionality even when the backend is slow to respond:
+
+<Info>
+If token validation fails due to network issues, the app validates the JWT locally and allows the user to continue if the token hasn't expired.
+</Info>
+
+```typescript src/hooks/useAuth.tsx
+// Validate locally if backend fails
+const payload = decodeJwt(token);
+const now = Math.floor(Date.now() / 1000);
+if (payload?.exp && payload.exp < now) {
+  Alert.alert('Sesión expirada', 'Tu sesión ha caducado. Se cerrará la sesión.');
+  return;
+}
+
+// Use local token if it appears valid
+setUser(storedUser);
+scheduleExpiry(token);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Project Structure" icon="folder-tree" href="/architecture/project-structure">
+    Detailed breakdown of directories and files
+  </Card>
+  
+  <Card title="Routing" icon="route" href="/architecture/routing">
+    Learn about Expo Router implementation
+  </Card>
+  
+  <Card title="Authentication" icon="lock" href="/architecture/authentication">
+    Deep dive into JWT authentication flow
+  </Card>
+</CardGroup>

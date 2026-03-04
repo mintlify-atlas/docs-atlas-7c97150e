@@ -1,0 +1,452 @@
+---
+title: 'Offline Mode'
+description: 'Session persistence with AsyncStorage and expo-secure-store for seamless offline functionality'
+icon: 'wifi-slash'
+---
+
+## Overview
+
+The RIS Gran Chimú app implements a robust offline mode that maintains user sessions even when the network is unavailable. This is achieved through a combination of `AsyncStorage` for user data persistence and `expo-secure-store` for token management.
+
+<Info>
+**Lazy Auth Pattern:** The app uses a "Lazy Auth" approach mentioned in `README.md:83-84`, allowing the app to remain functional even if the backend is slow to respond.
+</Info>
+
+## Storage Layers
+
+The app uses two storage mechanisms:
+
+<Tabs>
+  <Tab title="AsyncStorage">
+    **Purpose:** Store user session data (user object + JWT token)
+    
+    **Location:** `src/hooks/useAuth.tsx`
+    
+    **Key:** `@ris_gran_chimu_user`
+    
+    ```typescript
+    const USER_STORAGE_KEY = '@ris_gran_chimu_user';
+    ```
+  </Tab>
+  
+  <Tab title="expo-secure-store">
+    **Purpose:** Secure token storage (legacy/alternative method)
+    
+    **Location:** `src/services/apiClient.ts`
+    
+    **Key:** `authToken`
+    
+    ```typescript src/services/apiClient.ts:32-43
+    export const getStoredToken = async () => {
+      try {
+        const stored = await SecureStore.getItemAsync('authToken');
+        if (stored) {
+          setAuthToken(stored);
+        }
+        return stored;
+      } catch (error) {
+        console.error('Error al recuperar el token:', error);
+        return null;
+      }
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Session Persistence Flow
+
+### 1. Login & Storage
+
+When a user logs in, credentials are stored in AsyncStorage:
+
+```typescript src/hooks/useAuth.tsx:197-228
+const signIn = async (email: string, password: string) => {
+  setLoading(true);
+  try {
+    console.log('🔐 Paso 1: Iniciando login...');
+    const response = await apiClient.post<LoginResponse>('/auth/login', { email, password });
+    const { user: userData, token } = response.data;
+
+    // Map backend fields to frontend model
+    const mappedUser: User = {
+      id: String(userData.id),
+      name: userData.nombre || userData.nombre || 'Usuario',
+      role: (userData.rol || userData.rol || 'guest') as UserRole,
+    };
+
+    console.log('✅ Paso 2: Usuario mapeado:', mappedUser);
+
+    console.log('💾 Paso 3: Intentando guardar en AsyncStorage...');
+    await AsyncStorage.setItem(
+      USER_STORAGE_KEY,
+      JSON.stringify({ user: mappedUser, token })
+    );
+    console.log('🎉 Paso 4: Guardado EXITOSO en AsyncStorage');
+
+    setUser(mappedUser);
+    setAuthToken(token);
+    scheduleExpiry(token);
+
+    // Redirect to unified dashboard
+    setTimeout(() => {
+      router.replace('/(main)/dashboard' as any);
+    }, 100);
+  }
+}
+```
+
+<Note>
+The `setAuthToken` function from `apiClient.ts` configures the Axios instance with the `Authorization` header for all subsequent requests.
+</Note>
+
+### 2. Session Recovery on App Launch
+
+When the app starts, it attempts to restore the previous session:
+
+```typescript src/hooks/useAuth.tsx:129-195
+const loadUser = async () => {
+  try {
+    const saved = await AsyncStorage.getItem(USER_STORAGE_KEY);
+    console.log('💾 [loadStoredUser] Valor crudo de AsyncStorage:', saved);
+
+    if (!saved) {
+      console.log('🔍 [loadStoredUser] No hay sesión guardada');
+      return;
+    }
+
+    const parsed = JSON.parse(saved);
+    const { user: storedUser, token } = parsed;
+
+    if (!storedUser || !token) {
+      console.log('⚠️ [loadStoredUser] Datos incompletos en almacenamiento');
+      return;
+    }
+
+    // Validate user object structure
+    if (
+      typeof storedUser.id !== 'string' ||
+      typeof storedUser.name !== 'string' ||
+      typeof storedUser.role !== 'string'
+    ) {
+      console.warn('⚠️ [loadStoredUser] Tipo de usuario inválido');
+      return;
+    }
+
+    console.log('✅ [loadStoredUser] Usuario cargado:', storedUser);
+    console.log('🔑 [loadStoredUser] Token cargado (longitud):', token.length);
+
+    setAuthToken(token);
+
+    // Try to validate with backend
+    try {
+      await apiClient.get('/auth/me');
+      setUser(storedUser);
+      scheduleExpiry(token);
+    } catch (err: any) {
+      console.warn('⚠️ [loadStoredUser] Validación de token falló:', err.response?.status);
+      if (err.response?.status === 401) {
+        Alert.alert('Sesión expirada', 'Tu sesión ha caducado. Se cerrará la sesión.', [
+          { text: 'Aceptar', onPress: signOut },
+        ]);
+        return;
+      }
+
+      // Validate locally if token is expired
+      const payload = decodeJwt(token);
+      const now = Math.floor(Date.now() / 1000);
+      if (payload?.exp && payload.exp < now) {
+        Alert.alert('Sesión expirada', 'Tu sesión ha caducado. Se cerrará la sesión.', [
+          { text: 'Aceptar', onPress: signOut },
+        ]);
+        return;
+      }
+
+      // Use local token if it seems valid (Lazy Auth)
+      setUser(storedUser);
+      scheduleExpiry(token);
+    }
+  } catch (error) {
+    console.error('❌ [loadStoredUser] Error al cargar:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+<Steps>
+  <Step title="Read from Storage">
+    Retrieve stored user data and token from AsyncStorage.
+  </Step>
+  
+  <Step title="Validate Structure">
+    Ensure the stored data has the correct TypeScript types.
+  </Step>
+  
+  <Step title="Set Auth Header">
+    Configure Axios with the stored token using `setAuthToken()`.
+  </Step>
+  
+  <Step title="Backend Validation">
+    Attempt to validate the token with the backend via `/auth/me`.
+  </Step>
+  
+  <Step title="Fallback to Local Validation">
+    If backend fails, decode JWT locally and validate expiration timestamp.
+  </Step>
+  
+  <Step title="Lazy Auth">
+    If token appears valid locally, proceed with cached user data even if backend is unreachable.
+  </Step>
+</Steps>
+
+## JWT Token Management
+
+### Token Decoding
+
+The app includes a client-side JWT decoder for offline validation:
+
+```typescript src/hooks/useAuth.tsx:65-74
+const decodeJwt = (token: string): { exp?: number } | null => {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+};
+```
+
+### Token Expiration Scheduling
+
+The app proactively schedules logout when token expires:
+
+```typescript src/hooks/useAuth.tsx:77-99
+const scheduleExpiry = (token: string | null) => {
+  if (!token) return;
+  clearExpiry();
+
+  const payload = decodeJwt(token);
+  if (!payload?.exp) return;
+
+  const now = Math.floor(Date.now() / 1000);
+  const delayMs = (payload.exp - now) * 1000;
+
+  if (delayMs <= 0) {
+    Alert.alert('Sesión expirada', 'Tu sesión ha caducado. Se cerrará la sesión.', [
+      { text: 'Aceptar', onPress: signOut },
+    ]);
+    return;
+  }
+
+  expiryTimeoutRef.current = setTimeout(() => {
+    Alert.alert('Sesión expirada', 'Tu sesión ha caducado. Se cerrará la sesión.', [
+      { text: 'Aceptar', onPress: signOut },
+    ]);
+  }, delayMs);
+};
+```
+
+<Tip>
+**Automatic Logout:** The app uses a timeout to automatically log users out when their JWT expires, even if they're actively using the app.
+</Tip>
+
+## Axios Token Interceptor
+
+The `apiClient` automatically includes the token in all requests:
+
+```typescript src/services/apiClient.ts:9-29
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 [setAuthToken] Header configurado con token');
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔓 [setAuthToken] Header eliminado');
+  }
+};
+```
+
+## Logout & Cleanup
+
+Secure logout removes all stored credentials:
+
+```typescript src/hooks/useAuth.tsx:52-62
+const signOut = async () => {
+  clearExpiry();
+  setUser(null);
+  try {
+    await AsyncStorage.removeItem(USER_STORAGE_KEY);
+  } catch (e) {
+    console.warn('Error removing user storage on signOut', e);
+  }
+  delete apiClient.defaults.headers.common['Authorization'];
+  router.replace('/landing');
+};
+```
+
+## Platform-Specific Behavior
+
+### Mobile (Android/iOS)
+
+On mobile platforms, the app persists sessions across app restarts:
+
+```typescript app/index.tsx:22-29
+if (user) {
+  console.log('✅ Usuario encontrado, redirigiendo al dashboard');
+  if (user.role === 'admin') {
+    router.replace('/(main)/dashboard/admin');
+  } else if (user.role === 'editor') {
+    router.replace('/(main)/dashboard/editor');
+  }
+}
+```
+
+### Web
+
+On web, the app always redirects to the landing page on refresh:
+
+```typescript app/index.tsx:18-20
+if (Platform.OS === 'web') {
+  console.log('➡️ Web: redirigiendo al inicio');
+  router.replace('/landing');
+}
+```
+
+## Public Endpoint Optimization
+
+Public pages explicitly remove the Authorization header to avoid 401 errors:
+
+```typescript app/landing/index.tsx:74-86
+const loadNoticias = async () => {
+  try {
+    // Force removal of Authorization header to avoid 401 with expired token
+    const res = await apiClient.get<Noticia[]>('/public/noticias', {
+      headers: { Authorization: undefined }
+    });
+    setNoticias(res.data);
+  } catch (error) {
+    console.error('Error cargando noticias públicas:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+<Warning>
+**Important:** When fetching public data, explicitly set `Authorization: undefined` to prevent cached tokens from causing authentication errors.
+</Warning>
+
+## Error Handling Strategies
+
+### Network Errors
+
+The app distinguishes between network errors and authentication failures:
+
+```typescript src/hooks/useAuth.tsx:234-256
+if (error.response) {
+  // Server responded with error code
+  switch (error.response.status) {
+    case 401:
+      errorMessage = 'Correo o contraseña incorrectos.';
+      break;
+    case 404:
+      errorMessage = 'Usuario no encontrado.';
+      break;
+    case 500:
+      errorMessage = 'Error del servidor. Intenta más tarde.';
+      break;
+    default:
+      errorMessage = 'No se pudo conectar con el servidor.';
+  }
+} else if (error.request) {
+  // No response (network issue)
+  errorMessage = 'No se pudo conectar al servidor. Verifica tu conexión a internet.';
+} else {
+  // Other error
+  errorMessage = 'Ocurrió un error inesperado. Intenta nuevamente.';
+}
+```
+
+## Lazy Auth Benefits
+
+<Check>
+**Advantages of the Lazy Auth Pattern:**
+
+1. **Offline Access:** Users can access their dashboard even without connectivity
+2. **Faster Startup:** App doesn't block on network requests during launch
+3. **Better UX:** No loading spinners if backend is slow
+4. **Graceful Degradation:** App remains functional during network issues
+5. **Local Validation:** JWT expiration checked client-side as fallback
+</Check>
+
+## Security Considerations
+
+<Warning>
+**Security Trade-offs:**
+
+- **Client-side JWT decoding** exposes payload data (non-sensitive)
+- **Local expiration checks** can be bypassed by device time manipulation
+- **Backend validation** is still required for all sensitive operations
+- **Token storage** in AsyncStorage is not encrypted (use expo-secure-store for sensitive tokens)
+</Warning>
+
+## Best Practices
+
+<Steps>
+  <Step title="Always validate server-side">
+    Never trust client-side authentication checks for sensitive operations.
+  </Step>
+  
+  <Step title="Handle token expiration gracefully">
+    Show user-friendly messages and automatic logout when tokens expire.
+  </Step>
+  
+  <Step title="Clear storage on logout">
+    Remove all traces of user session to prevent unauthorized access.
+  </Step>
+  
+  <Step title="Use secure storage for sensitive data">
+    Prefer `expo-secure-store` for tokens, use AsyncStorage for user preferences.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Session not persisting across restarts">
+    Check that AsyncStorage permissions are configured in `app.json`. Ensure `USER_STORAGE_KEY` matches between writes and reads.
+  </Accordion>
+  
+  <Accordion title="Token validation always fails">
+    Verify backend `/auth/me` endpoint is accessible. Check network connectivity and CORS settings.
+  </Accordion>
+  
+  <Accordion title="Automatic logout not working">
+    Ensure `scheduleExpiry` is called after login and session restore. Check that `expiryTimeoutRef` is not being cleared prematurely.
+  </Accordion>
+  
+  <Accordion title="Public pages showing 401 errors">
+    Add `headers: { Authorization: undefined }` to public API requests to remove cached tokens.
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/architecture/authentication">
+    Login flow and JWT token management
+  </Card>
+  <Card title="API Client" icon="plug" href="/api/services/api-client">
+    Axios configuration and interceptors
+  </Card>
+</CardGroup>

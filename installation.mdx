@@ -1,0 +1,220 @@
+---
+title: Installation
+description: Complete guide to setting up the RIS Gran Chimú mobile app development environment
+---
+
+# Installation Guide
+
+This guide will walk you through setting up the RIS Gran Chimú mobile app on your local development machine.
+
+## Prerequisites
+
+Before installing the app, ensure you have the following tools installed:
+
+<Steps>
+  <Step title="Install Node.js">
+    Download and install Node.js (version 18 or higher recommended).
+    
+    ```bash
+    # Verify installation
+    node --version
+    npm --version
+    ```
+    
+    <Note>
+      The app uses npm as its package manager. You can also use yarn if preferred.
+    </Note>
+  </Step>
+
+  <Step title="Install Expo Go App">
+    Install the Expo Go app on your mobile device to test the application:
+    
+    - **Android**: Download from [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+    - **iOS**: Download from [Apple App Store](https://apps.apple.com/app/expo-go/id982107779)
+    
+    This app allows you to scan QR codes and instantly preview your development build.
+  </Step>
+
+  <Step title="Install Git (Optional)">
+    If you plan to clone the repository, ensure Git is installed:
+    
+    ```bash
+    # Verify Git installation
+    git --version
+    ```
+  </Step>
+</Steps>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the RIS Gran Chimú source code to your local machine:
+    
+    ```bash
+    git clone <repository-url>
+    cd ris-gran-chimu
+    ```
+    
+    Alternatively, if you have the source code as a zip file, extract it and navigate to the directory.
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required npm packages:
+    
+    ```bash
+    npm install
+    ```
+    
+    This will install all dependencies listed in `package.json`, including:
+    
+    - Expo SDK 54
+    - React Native 0.81
+    - Axios for API calls
+    - Expo Router for navigation
+    - TypeScript and all development tools
+    
+    <Note>
+      The installation may take a few minutes depending on your internet connection.
+    </Note>
+  </Step>
+
+  <Step title="Configure API Endpoint">
+    Configure the backend API URL in `src/services/apiClient.ts`.
+    
+    Open the file and verify or update the `BASE_URL`:
+    
+    ```typescript src/services/apiClient.ts
+    const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+    ```
+    
+    **Options:**
+    
+    - **Production**: Use `https://ris-gran-chimu-backend.vercel.app/api` (default)
+    - **Local Development**: Use `http://localhost:3000/api` if running the backend locally
+    - **Custom Server**: Replace with your own backend URL
+    
+    <Warning>
+      If testing on a physical device with a local backend, use your computer's local network IP address (e.g., `http://192.168.1.100:3000/api`) instead of `localhost`.
+    </Warning>
+  </Step>
+
+  <Step title="Verify Installation">
+    Verify that everything is set up correctly:
+    
+    ```bash
+    # Check for TypeScript errors
+    npx tsc --noEmit
+    
+    # Run linter
+    npm run lint
+    ```
+    
+    If no errors appear, your installation is complete!
+  </Step>
+</Steps>
+
+## Project Structure
+
+After installation, your project directory will contain:
+
+```text
+ris-gran-chimu/
+├── app/                  # Application routes (Expo Router)
+│   ├── (auth)/           # Authentication screens
+│   ├── (main)/           # Main dashboard
+│   └── landing/          # Public landing pages
+├── src/
+│   ├── components/       # Reusable UI components
+│   ├── hooks/            # Custom React hooks
+│   ├── services/         # API client and services
+│   ├── types/            # TypeScript type definitions
+│   └── context/          # React contexts
+├── assets/               # Images, logos, splash screens
+├── app.json              # Expo configuration
+├── package.json          # Dependencies and scripts
+└── tsconfig.json         # TypeScript configuration
+```
+
+## Key Dependencies
+
+The app includes these major dependencies:
+
+<AccordionGroup>
+  <Accordion title="Core Framework">
+    - **expo** (~54.0.33): Development framework
+    - **react** (19.1.0): UI library
+    - **react-native** (0.81.5): Mobile framework
+    - **typescript** (~5.9.2): Type safety
+  </Accordion>
+
+  <Accordion title="Navigation & Routing">
+    - **expo-router** (~6.0.23): File-based routing
+    - **@react-navigation/native** (^7.1.6): Navigation library
+    - **react-native-screens** (~4.16.0): Native screen optimization
+  </Accordion>
+
+  <Accordion title="API & Storage">
+    - **axios** (^1.12.2): HTTP client
+    - **expo-secure-store** (~15.0.8): Secure token storage
+    - **@react-native-async-storage/async-storage** (^2.2.0): Local storage
+  </Accordion>
+
+  <Accordion title="UI & Icons">
+    - **lucide-react-native** (^0.542.0): Icon library
+    - **expo-blur** (~15.0.8): Blur effects
+    - **expo-haptics** (~15.0.8): Haptic feedback
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Installation fails with permission errors">
+    Try running the command with elevated permissions or fixing npm permissions:
+    
+    ```bash
+    # On macOS/Linux
+    sudo npm install
+    
+    # Or fix npm permissions (recommended)
+    npm config set prefix ~/.npm-global
+    ```
+  </Accordion>
+
+  <Accordion title="Metro bundler port already in use">
+    If port 8081 is already in use:
+    
+    ```bash
+    # Kill the process on port 8081
+    npx kill-port 8081
+    
+    # Or start on a different port
+    npx expo start --port 8082
+    ```
+  </Accordion>
+
+  <Accordion title="TypeScript errors after installation">
+    Clear the cache and reinstall:
+    
+    ```bash
+    # Clear npm cache
+    npm cache clean --force
+    
+    # Remove node_modules and reinstall
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get the app running on your device in 5 minutes
+  </Card>
+  <Card title="API Reference" icon="code">
+    Learn about the backend API integration
+  </Card>
+</CardGroup>

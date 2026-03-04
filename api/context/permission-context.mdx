@@ -1,0 +1,230 @@
+---
+title: PermissionContext
+description: Context provider for managing user permissions and role-based access control
+---
+
+# PermissionContext
+
+The `PermissionContext` provides application-wide access to user permissions and role-based permission checking. It automatically loads permissions from the backend when a user is authenticated and provides utilities to check if the current user has specific permissions.
+
+## Import
+
+```tsx
+import { PermissionProvider, usePermissions } from '@/src/context/PermissionContext';
+```
+
+## Provider Setup
+
+Wrap your application (or the relevant part) with the `PermissionProvider`:
+
+```tsx
+import { PermissionProvider } from '@/src/context/PermissionContext';
+
+function App() {
+  return (
+    <AuthProvider>
+      <PermissionProvider>
+        <YourAppContent />
+      </PermissionProvider>
+    </AuthProvider>
+  );
+}
+```
+
+<Info>
+The `PermissionProvider` must be placed inside the `AuthProvider` as it depends on the authenticated user.
+</Info>
+
+## Hook: usePermissions
+
+The `usePermissions` hook provides access to the permission context. It must be used within a component that is a child of `PermissionProvider`.
+
+### Return Value
+
+<ParamField path="permissions" type="string[]">
+  Array of permission codes that the current user has. Empty array if user is not authenticated.
+</ParamField>
+
+<ParamField path="loading" type="boolean">
+  Indicates whether permissions are currently being loaded from the backend.
+</ParamField>
+
+<ParamField path="hasPermission" type="(code: string) => boolean">
+  Function to check if the current user has a specific permission. Returns `true` for admin users regardless of the permission code.
+</ParamField>
+
+<ParamField path="refreshPermissions" type="() => Promise<void>">
+  Function to manually refresh permissions from the backend. Useful after permission changes.
+</ParamField>
+
+## Usage
+
+### Basic Permission Check
+
+```tsx
+import { usePermissions } from '@/src/context/PermissionContext';
+
+function MyComponent() {
+  const { hasPermission, loading } = usePermissions();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!hasPermission('VIEW_REPORTS')) {
+    return <Text>You don't have permission to view reports</Text>;
+  }
+
+  return <ReportsView />;
+}
+```
+
+### Conditional Rendering
+
+```tsx
+function ActionButtons() {
+  const { hasPermission } = usePermissions();
+
+  return (
+    <View>
+      {hasPermission('CREATE_RECORD') && (
+        <Button title="Create New" onPress={handleCreate} />
+      )}
+      {hasPermission('DELETE_RECORD') && (
+        <Button title="Delete" onPress={handleDelete} />
+      )}
+    </View>
+  );
+}
+```
+
+### Accessing All Permissions
+
+```tsx
+function PermissionsList() {
+  const { permissions, loading } = usePermissions();
+
+  if (loading) {
+    return <Text>Loading permissions...</Text>;
+  }
+
+  return (
+    <View>
+      <Text>Your permissions:</Text>
+      {permissions.map(perm => (
+        <Text key={perm}>- {perm}</Text>
+      ))}
+    </View>
+  );
+}
+```
+
+### Refreshing Permissions
+
+```tsx
+function PermissionManager() {
+  const { refreshPermissions, loading } = usePermissions();
+
+  const handleRefresh = async () => {
+    try {
+      await refreshPermissions();
+      Alert.alert('Success', 'Permissions refreshed');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to refresh permissions');
+    }
+  };
+
+  return (
+    <Button 
+      title="Refresh Permissions" 
+      onPress={handleRefresh}
+      disabled={loading}
+    />
+  );
+}
+```
+
+## Role-Based Permission Checking
+
+The `hasPermission` function includes built-in admin privilege escalation:
+
+- **Admin users**: Always return `true` for any permission check
+- **Non-admin users**: Check against the permissions array loaded from the backend
+
+From `src/context/PermissionContext.tsx:50`:
+
+```tsx
+const hasPermission = (code: string) => {
+  if (user?.role === 'admin') return true;
+  return permissions.includes(code);
+}
+```
+
+## How It Works
+
+1. **Automatic Loading**: When a user is authenticated, permissions are automatically loaded from the backend via `GET /auth/permissions`
+2. **Reactive Updates**: Permissions reload whenever the authenticated user changes
+3. **Optimistic Admin Access**: Admin users bypass permission checks locally, though backend validation is still the authority
+4. **Error Handling**: If permission loading fails, the permissions array is set to empty and an error is logged
+
+## API Endpoint
+
+The context expects a backend endpoint:
+
+**GET** `/auth/permissions`
+
+**Response**: `string[]` - Array of permission codes
+
+```json
+[
+  "VIEW_REPORTS",
+  "CREATE_RECORD",
+  "EDIT_RECORD",
+  "DELETE_RECORD"
+]
+```
+
+## Source Code
+
+Location: `src/context/PermissionContext.tsx:14`
+
+```tsx
+export function PermissionProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadPermissions = async () => {
+    if (!user) {
+      setPermissions([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await apiClient.get<string[]>('/auth/permissions');
+      setPermissions(res.data);
+    } catch (error) {
+      console.error('Error cargando permisos', error);
+      setPermissions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPermissions();
+  }, [user]);
+
+  const hasPermission = (code: string) => {
+    if (user?.role === 'admin') return true;
+    return permissions.includes(code);
+  }
+
+  return (
+    <PermissionContext.Provider value={{ permissions, loading, hasPermission, refreshPermissions: loadPermissions }}>
+      {children}
+    </PermissionContext.Provider>
+  );
+}
+```

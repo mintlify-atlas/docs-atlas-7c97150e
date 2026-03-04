@@ -1,0 +1,496 @@
+---
+title: 'API Integration'
+description: 'Axios client configuration, authentication, and API communication'
+icon: 'plug'
+---
+
+## Overview
+
+The RIS Gran Chimú app uses Axios for HTTP communication with the backend API. The API client is configured with authentication, timeouts, and error handling.
+
+---
+
+## API Client Setup
+
+### Location
+
+`src/services/apiClient.ts`
+
+### Complete Implementation
+
+```tsx src/services/apiClient.ts
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+
+// Base URL for all API requests
+const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+
+// Create axios instance with default configuration
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Global token storage
+let authToken: string | null = null;
+
+// Set or remove authentication token
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 [setAuthToken] Header configurado con token');
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔓 [setAuthToken] Header eliminado');
+  }
+};
+
+// Retrieve stored token on app startup
+export const getStoredToken = async () => {
+  try {
+    const stored = await SecureStore.getItemAsync('authToken');
+    if (stored) {
+      setAuthToken(stored);
+    }
+    return stored;
+  } catch (error) {
+    console.error('Error al recuperar el token:', error);
+    return null;
+  }
+};
+
+export default apiClient;
+```
+
+---
+
+## Configuration
+
+### Base URL
+
+```tsx
+const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+```
+
+All API requests are made relative to this base URL.
+
+**Example:** A request to `/auth/login` becomes `https://ris-gran-chimu-backend.vercel.app/api/auth/login`
+
+<Tip>
+  For local development, you can change `BASE_URL` to `http://localhost:3000/api` or your local backend URL.
+</Tip>
+
+### Default Configuration
+
+```tsx
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,  // 10 seconds
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+<ParamField path="baseURL" type="string">
+  Base URL for all API requests
+</ParamField>
+
+<ParamField path="timeout" type="number">
+  Maximum request duration in milliseconds (10 seconds)
+</ParamField>
+
+<ParamField path="headers" type="object">
+  Default headers sent with every request
+</ParamField>
+
+---
+
+## Authentication
+
+### setAuthToken Function
+
+Configures the Authorization header for all subsequent API requests.
+
+```tsx
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 [setAuthToken] Header configurado con token');
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔓 [setAuthToken] Header eliminado');
+  }
+};
+```
+
+**Usage:**
+
+<CodeGroup>
+
+```tsx Set Token
+import { setAuthToken } from '@/src/services/apiClient';
+
+// After successful login
+const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+setAuthToken(token);
+
+// Now all API requests include: Authorization: Bearer <token>
+```
+
+```tsx Remove Token
+import { setAuthToken } from '@/src/services/apiClient';
+
+// On logout
+setAuthToken(null);
+
+// Authorization header is removed from all requests
+```
+
+</CodeGroup>
+
+### Token Storage
+
+The `getStoredToken` function retrieves the authentication token from secure storage on app startup.
+
+```tsx
+export const getStoredToken = async () => {
+  try {
+    const stored = await SecureStore.getItemAsync('authToken');
+    if (stored) {
+      setAuthToken(stored);
+    }
+    return stored;
+  } catch (error) {
+    console.error('Error al recuperar el token:', error);
+    return null;
+  }
+};
+```
+
+<Info>
+  The app uses `expo-secure-store` for secure token storage. On iOS, this uses the Keychain. On Android, it uses EncryptedSharedPreferences.
+</Info>
+
+---
+
+## Making API Requests
+
+### GET Request
+
+```tsx Fetch Data
+import apiClient from '@/src/services/apiClient';
+
+const fetchNormas = async () => {
+  try {
+    const response = await apiClient.get('/normas');
+    const normas = response.data.data;
+    return normas;
+  } catch (error) {
+    console.error('Error fetching normas:', error);
+    throw error;
+  }
+};
+```
+
+### POST Request
+
+```tsx Login
+import apiClient from '@/src/services/apiClient';
+import { setAuthToken } from '@/src/services/apiClient';
+
+const login = async (email: string, password: string) => {
+  try {
+    const response = await apiClient.post('/auth/login', {
+      email,
+      password,
+    });
+    
+    const { token, user } = response.data;
+    
+    // Set token for future requests
+    setAuthToken(token);
+    
+    return { token, user };
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
+```
+
+### PUT Request
+
+```tsx Update User
+import apiClient from '@/src/services/apiClient';
+
+const updateUser = async (userId: string, data: Partial<User>) => {
+  try {
+    const response = await apiClient.put(`/users/${userId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Update error:', error);
+    throw error;
+  }
+};
+```
+
+### DELETE Request
+
+```tsx Delete Item
+import apiClient from '@/src/services/apiClient';
+
+const deleteNorma = async (normaId: string) => {
+  try {
+    await apiClient.delete(`/normas/${normaId}`);
+  } catch (error) {
+    console.error('Delete error:', error);
+    throw error;
+  }
+};
+```
+
+---
+
+## Available Endpoints
+
+### Authentication
+
+<AccordionGroup>
+  <Accordion title="POST /auth/login" icon="right-to-bracket">
+    **Request:**
+    ```json
+    {
+      "email": "user@example.com",
+      "password": "password123"
+    }
+    ```
+
+    **Response:**
+    ```json
+    {
+      "user": {
+        "id": 1,
+        "nombre": "John Doe",
+        "email": "user@example.com",
+        "rol": "admin"
+      },
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="GET /auth/me" icon="user">
+    Validates the current authentication token and returns user info.
+
+    **Headers Required:**
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    **Response:**
+    ```json
+    {
+      "id": 1,
+      "nombre": "John Doe",
+      "email": "user@example.com",
+      "rol": "admin"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="GET /auth/permissions" icon="key">
+    Returns the list of permissions for the authenticated user.
+
+    **Headers Required:**
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    **Response:**
+    ```json
+    ["read:normas", "write:normas", "delete:normas", "manage:users"]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Normas (Regulations)
+
+<AccordionGroup>
+  <Accordion title="GET /normas" icon="book">
+    Retrieves the list of all normas.
+
+    **Response:**
+    ```json
+    {
+      "data": [
+        {
+          "id_norma": "N001",
+          "anho": "2024",
+          "descripcion": "Reglamento de Seguridad"
+        }
+      ]
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="GET /normas/:id" icon="book-open">
+    Retrieves details of a specific norma.
+
+    **Response:**
+    ```json
+    {
+      "id_norma": "N001",
+      "anho": "2024",
+      "descripcion": "Reglamento de Seguridad",
+      "contenido": "..."
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Error Handling
+
+### Standard Error Structure
+
+```tsx
+try {
+  const response = await apiClient.get('/normas');
+  return response.data;
+} catch (error: any) {
+  if (error.response) {
+    // Server responded with error status
+    console.error('Status:', error.response.status);
+    console.error('Data:', error.response.data);
+    console.error('Headers:', error.response.headers);
+  } else if (error.request) {
+    // Request made but no response received
+    console.error('No response received:', error.request);
+  } else {
+    // Error setting up the request
+    console.error('Error:', error.message);
+  }
+}
+```
+
+### Common Error Status Codes
+
+| Status Code | Meaning | Common Cause |
+|-------------|---------|-------------|
+| `400` | Bad Request | Invalid request data |
+| `401` | Unauthorized | Missing or invalid token |
+| `403` | Forbidden | Insufficient permissions |
+| `404` | Not Found | Resource doesn't exist |
+| `500` | Internal Server Error | Backend error |
+| `503` | Service Unavailable | Server is down |
+
+### Error Handling Pattern
+
+```tsx Helper Function
+import { Alert } from 'react-native';
+import apiClient from '@/src/services/apiClient';
+
+const handleApiError = (error: any) => {
+  let message = 'An unexpected error occurred';
+
+  if (error.response) {
+    switch (error.response.status) {
+      case 401:
+        message = 'Session expired. Please log in again.';
+        break;
+      case 403:
+        message = 'You do not have permission to perform this action.';
+        break;
+      case 404:
+        message = 'The requested resource was not found.';
+        break;
+      case 500:
+        message = 'Server error. Please try again later.';
+        break;
+    }
+  } else if (error.request) {
+    message = 'Network error. Please check your connection.';
+  }
+
+  Alert.alert('Error', message);
+};
+
+// Usage
+try {
+  await apiClient.post('/normas', data);
+} catch (error) {
+  handleApiError(error);
+}
+```
+
+---
+
+## Request/Response Interceptors
+
+You can add interceptors to modify requests or handle responses globally.
+
+### Request Interceptor
+
+```tsx Add Logging
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log('📤 Request:', config.method?.toUpperCase(), config.url);
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+```
+
+### Response Interceptor
+
+```tsx Handle 401 Globally
+import { router } from 'expo-router';
+import { setAuthToken } from '@/src/services/apiClient';
+
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      setAuthToken(null);
+      router.replace('/landing');
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Handle Errors" icon="shield-halved">
+    Wrap API calls in try-catch blocks and provide user feedback
+  </Card>
+
+  <Card title="Use TypeScript Types" icon="code">
+    Define response types for type safety and autocomplete
+  </Card>
+
+  <Card title="Centralize API Logic" icon="folder">
+    Create service files for different API domains (auth, normas, users)
+  </Card>
+
+  <Card title="Loading States" icon="spinner">
+    Show loading indicators during API requests
+  </Card>
+</CardGroup>
+
+<Warning>
+  Never hardcode authentication tokens in your code. Always retrieve them from secure storage.
+</Warning>

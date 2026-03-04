@@ -1,0 +1,255 @@
+---
+title: 'Dashboard'
+description: 'Role-based administrative dashboard with dynamic permission-driven navigation'
+icon: 'gauge'
+---
+
+## Overview
+
+The RIS Gran Chimú app features a unified dashboard system that dynamically displays administrative options based on the authenticated user's role and permissions. The dashboard serves as the central hub for content management and administrative tasks.
+
+## Entry Point Routing
+
+The app uses intelligent routing at the entry point to direct users based on authentication status:
+
+<CodeGroup>
+```typescript app/index.tsx
+export default function Index() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (Platform.OS === 'web') {
+        router.replace('/landing');
+      } else {
+        if (user) {
+          // Redirect based on role
+          if (user.role === 'admin') {
+            router.replace('/(main)/dashboard/admin');
+          } else if (user.role === 'editor') {
+            router.replace('/(main)/dashboard/editor');
+          }
+        } else {
+          router.replace('/landing');
+        }
+      }
+    }
+  }, [user, loading]);
+}
+```
+</CodeGroup>
+
+## Role-Based Access Control
+
+The dashboard implements a permission-based system using the `PermissionContext`:
+
+<Steps>
+  <Step title="User Authentication">
+    User logs in via `useAuth` hook, which validates credentials and retrieves user data with role information.
+  </Step>
+  
+  <Step title="Permission Loading">
+    `PermissionProvider` fetches the user's permissions from `/auth/permissions` endpoint.
+  </Step>
+  
+  <Step title="Dynamic Menu">
+    Dashboard filters available options based on `hasPermission(code)` checks.
+  </Step>
+</Steps>
+
+### Permission Context Implementation
+
+```typescript src/context/PermissionContext.tsx:50-53
+const hasPermission = (code: string) => {
+  if (user?.role === 'admin') return true;
+  return permissions.includes(code);
+}
+```
+
+<Note>
+**Admin Override:** Administrators automatically have access to all features regardless of explicit permissions (`user?.role === 'admin'`).
+</Note>
+
+## Dynamic Dashboard Structure
+
+The unified dashboard at `app/(main)/dashboard/index.tsx` displays management options based on permissions:
+
+```typescript app/(main)/dashboard/index.tsx:15-72
+const allOptions = [
+  {
+    code: 'manage_roles',
+    label: 'Gestionar Roles',
+    description: 'Configurar roles y permisos',
+    icon: Shield,
+    route: './dashboard/manage/roles',
+    color: '#FF9500',
+  },
+  {
+    code: 'manage_users',
+    label: 'Gestionar Usuarios',
+    description: 'Crear, editar, eliminar y ver usuarios',
+    icon: Users,
+    route: './dashboard/admin/users',
+    color: '#007AFF',
+  },
+  {
+    code: 'manage_noticias',
+    label: 'Gestionar Noticias',
+    icon: Newspaper,
+    route: './dashboard/manage/noticias',
+    color: '#FF2D55',
+  },
+  // ... more options
+];
+
+// Filter based on permissions
+const availableOptions = allOptions.filter(opt => hasPermission(opt.code));
+```
+
+## Dashboard Routes
+
+### Admin Routes
+
+<Accordion title="User Management">
+**Route:** `/(main)/dashboard/admin/users`
+
+**Permission Required:** `manage_users`
+
+**Features:**
+- Create, edit, and delete users
+- Search by ID, name, email, or role
+- Re-authentication for sensitive operations
+- Password visibility toggle
+- Audit trail (created_by, updated_by timestamps)
+
+Implemented in `app/(main)/dashboard/admin/users/index.tsx`.
+</Accordion>
+
+### Content Management Routes
+
+All content management routes are located under `app/(main)/dashboard/manage/`:
+
+| Route | Permission | Description |
+|-------|------------|-------------|
+| `/manage/noticias` | `manage_noticias` | Create and publish news articles |
+| `/manage/establecimientos` | `manage_establecimientos` | Register health centers |
+| `/manage/servicios` | `manage_servicios` | Configure medical services |
+| `/manage/estrategias` | `manage_estrategias` | Manage health programs |
+| `/manage/normas` | `manage_normas` | Administer regulations |
+| `/manage/roles` | `manage_roles` | Configure roles and permissions |
+
+## User Profile Section
+
+The dashboard header displays the authenticated user's information:
+
+```typescript app/(main)/dashboard/index.tsx:83-95
+<View style={styles.profileSection}>
+  <View style={[styles.avatar, { backgroundColor: '#007AFF' }]}>
+    <User color="#ffffff" size={24} />
+  </View>
+  <View>
+    <Text style={styles.welcomeText}>¡Bienvenido!</Text>
+    <Text style={styles.userName}>{user?.name}</Text>
+    <View style={styles.roleBadge}>
+      <Shield color="#fff" size={12} />
+      <Text style={styles.roleText}>{user?.role.toUpperCase()}</Text>
+    </View>
+  </View>
+</View>
+```
+
+## Logout Flow
+
+Secure logout with confirmation dialog:
+
+```typescript app/(main)/dashboard/index.tsx:97-113
+<TouchableOpacity
+  style={styles.logoutButton}
+  onPress={() =>
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro de que deseas cerrar tu sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: () => signOut(),
+        },
+      ]
+    )
+  }
+>
+```
+
+## Empty State Handling
+
+If a user has no assigned permissions:
+
+```typescript app/(main)/dashboard/index.tsx:148-150
+<Text style={{textAlign: 'center', marginTop: 20, color: '#666'}}>
+  No tienes permisos asignados. Contacta al administrador.
+</Text>
+```
+
+## Navigation Hierarchy
+
+```mermaid
+graph TD
+    A[App Index] --> B{User Authenticated?}
+    B -->|No| C[/landing]
+    B -->|Yes| D{Check Role}
+    D -->|admin| E[/(main)/dashboard/admin]
+    D -->|editor| F[/(main)/dashboard/editor]
+    E --> G[Dynamic Menu]
+    F --> G
+    G --> H[manage_noticias]
+    G --> I[manage_users]
+    G --> J[manage_establecimientos]
+    G --> K[More Options...]
+```
+
+## Permission Codes Reference
+
+<AccordionGroup>
+  <Accordion title="Content Permissions">
+    - `manage_noticias` - Publish news articles
+    - `manage_establecimientos` - Register health facilities
+    - `manage_servicios` - Configure medical services
+    - `manage_estrategias` - Manage health programs
+    - `manage_normas` - Administer regulations
+  </Accordion>
+  
+  <Accordion title="Administrative Permissions">
+    - `manage_users` - User CRUD operations
+    - `manage_roles` - Configure roles and permissions
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+**Security:** The dashboard validates permissions on both frontend and backend. Frontend checks provide UX optimization, but all sensitive operations are validated server-side.
+</Warning>
+
+## Design System
+
+Dashboard cards use color-coded icons for visual hierarchy:
+
+- **Users:** `#007AFF` (Azure)
+- **Roles:** `#FF9500` (Orange)
+- **News:** `#FF2D55` (Red)
+- **Services:** `#FF9500` (Orange)
+- **Establishments:** `#34C759` (Green)
+- **Strategies:** `#AF52DE` (Purple)
+- **Norms:** `#5856D6` (Indigo)
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Admin Panel" icon="shield-halved" href="/features/admin-panel">
+    User and content management features
+  </Card>
+  <Card title="Authentication" icon="key" href="/architecture/authentication">
+    Login and session management
+  </Card>
+</CardGroup>

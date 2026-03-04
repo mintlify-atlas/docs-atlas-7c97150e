@@ -1,0 +1,117 @@
+---
+title: Introduction
+description: Overview of the RIS Gran Chimú mobile app - a health information platform for citizens and administrators
+---
+
+# RIS Gran Chimú Mobile App
+
+The **RIS Gran Chimú** mobile app is the official mobile application for the Red Integrada de Salud Gran Chimú (Gran Chimú Integrated Health Network). This tool enables citizens to access real-time health information and provides an administrative panel for efficient management of institutional content.
+
+## What is RIS Gran Chimú?
+
+RIS Gran Chimú is a comprehensive mobile health platform that bridges the gap between healthcare institutions and citizens. The app provides:
+
+- **Public Access**: Citizens can view institutional news, health facility information, services, and official regulations
+- **Administrative Control**: Protected panel for editors and administrators to manage content
+- **Real-time Updates**: Dynamic content delivery powered by a REST API backend
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Institutional News" icon="newspaper">
+    Dynamic carousel showcasing the latest news and updates from RIS
+  </Card>
+  <Card title="Health Guide" icon="hospital">
+    Detailed information about healthcare facilities, services, and strategies
+  </Card>
+  <Card title="Official Regulations" icon="scale-balanced">
+    Public access to resolutions and official documents
+  </Card>
+  <Card title="Administrative Management" icon="lock">
+    Protected control panel for editors and administrators
+  </Card>
+  <Card title="Offline Mode" icon="wifi-slash">
+    Session persistence and optimized data loading
+  </Card>
+  <Card title="Modern Design" icon="palette">
+    Intuitive interface based on MINSA accessibility standards
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+RIS Gran Chimú is built with modern, production-ready technologies:
+
+- **Framework**: Expo SDK 54+ with React Native 0.81
+- **Language**: TypeScript 5.9
+- **Navigation**: Expo Router (file-based routing)
+- **API Client**: Axios 1.12 with JWT token interceptors
+- **Security**: `expo-secure-store` and `AsyncStorage` for session management
+- **Icons**: `lucide-react-native` for consistent iconography
+- **State Management**: React Context for permissions and preferences
+
+<Note>
+  The app implements a "Lazy Auth" system to maintain functionality even when the backend server experiences delays in responding.
+</Note>
+
+## Architecture Overview
+
+The application follows Expo Router's file-based routing pattern:
+
+```text
+app/
+├── (auth)/           # Login and password recovery screens
+├── (main)/           # Role-based dashboard
+│   └── dashboard/    # Admin, Editor, and Management views
+├── landing/          # Public screens
+│   ├── noticias.tsx  # Institutional news viewer
+│   └── contacto.tsx  # Citizen service channels
+├── _layout.tsx       # Global navigation configuration
+└── index.tsx         # Entry point (main landing)
+
+src/
+├── components/       # Shared UI elements
+├── hooks/            # useAuth, useDebounce, useThemeColor
+├── services/         # apiClient (Axios) and authService
+├── types/            # TypeScript definitions
+└── context/          # Permissions and preferences contexts
+```
+
+## Security Features
+
+RIS Gran Chimú implements robust security measures:
+
+- **JWT Authentication**: Token-based authentication with automatic refresh
+- **Secure Storage**: Sensitive data stored using `expo-secure-store`
+- **Session Validation**: Real-time token validation with automatic logout on expiration
+- **Automatic Redirects**: 401 responses automatically redirect users to the welcome screen
+
+<Warning>
+  When tokens expire during app usage, the system automatically detects `401` status codes and redirects users to the welcome screen for re-authentication.
+</Warning>
+
+## Backend Integration
+
+The mobile app connects to the RIS Gran Chimú backend API:
+
+- **Production API**: `https://ris-gran-chimu-backend.vercel.app/api`
+- **Protocol**: RESTful API with JSON responses
+- **Timeout**: 10 seconds for API requests
+- **Authentication**: Bearer token in Authorization header
+
+## Platform Support
+
+- **Android**: Full support with adaptive icons and edge-to-edge display
+- **iOS**: Tablet support enabled
+- **Web**: Static output using Metro bundler
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Set up your development environment and install dependencies
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get the app running in 5 minutes
+  </Card>
+</CardGroup>

@@ -1,0 +1,165 @@
+---
+title: 'useThemeColor'
+description: 'Theme-aware color hook that adapts to light and dark mode'
+icon: 'palette'
+---
+
+## Overview
+
+The `useThemeColor` hook returns the appropriate color value based on the current color scheme (light or dark mode). It allows you to specify custom colors or fall back to the app's default theme colors.
+
+## Usage
+
+```tsx
+import { useThemeColor } from '@/src/hooks/useThemeColor';
+import { View, Text } from 'react-native';
+
+function ThemedCard() {
+  // Use default theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+
+  // Use custom colors with fallback
+  const accentColor = useThemeColor(
+    { light: '#007AFF', dark: '#0A84FF' },
+    'tint'
+  );
+
+  return (
+    <View style={{ backgroundColor }}>
+      <Text style={{ color: textColor }}>Themed content</Text>
+    </View>
+  );
+}
+```
+
+## Parameters
+
+<ParamField path="props" type="{ light?: string; dark?: string }" required>
+  An object containing optional custom color values for light and dark modes:
+  
+  <Expandable title="properties">
+    <ParamField path="light" type="string">
+      Custom color to use in light mode (hex, rgb, or named color)
+    </ParamField>
+    <ParamField path="dark" type="string">
+      Custom color to use in dark mode (hex, rgb, or named color)
+    </ParamField>
+  </Expandable>
+  
+  If you don't want to override the default theme colors, pass an empty object `{}`.
+</ParamField>
+
+<ParamField path="colorName" type="keyof typeof Colors.light & keyof typeof Colors.dark" required>
+  The name of the color from the theme's color palette. Must exist in both `Colors.light` and `Colors.dark`.
+  
+  Common color names include:
+  - `background`
+  - `text`
+  - `tint`
+  - `icon`
+  - `tabIconDefault`
+  - `tabIconSelected`
+</ParamField>
+
+## Return Value
+
+<ResponseField name="color" type="string">
+  The resolved color value as a string. The hook determines which color to return based on this priority:
+  
+  1. **Custom color from props**: If `props.light` or `props.dark` is provided (depending on current theme)
+  2. **Default theme color**: Falls back to `Colors[theme][colorName]` from the theme constants
+</ResponseField>
+
+## Type Signature
+
+```typescript
+function useThemeColor(
+  props: { light?: string; dark?: string },
+  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+): string
+```
+
+## How It Works
+
+1. The hook calls `useColorScheme()` to detect the current color scheme ('light' or 'dark')
+2. Defaults to 'light' if color scheme cannot be determined
+3. Checks if a custom color is provided in `props[theme]`
+4. If custom color exists, returns it
+5. Otherwise, returns the default color from `Colors[theme][colorName]`
+
+## Examples
+
+### Using Default Theme Colors
+
+```tsx
+const backgroundColor = useThemeColor({}, 'background');
+const textColor = useThemeColor({}, 'text');
+
+// Light mode: Returns Colors.light.background and Colors.light.text
+// Dark mode: Returns Colors.dark.background and Colors.dark.text
+```
+
+### Using Custom Colors
+
+```tsx
+const customColor = useThemeColor(
+  { light: '#FF6B6B', dark: '#EE5A52' },
+  'tint'
+);
+
+// Light mode: Returns '#FF6B6B'
+// Dark mode: Returns '#EE5A52'
+```
+
+### Partial Override
+
+```tsx
+// Override only dark mode, use default for light mode
+const color = useThemeColor(
+  { dark: '#CUSTOM_DARK_COLOR' },
+  'background'
+);
+
+// Light mode: Returns Colors.light.background (default)
+// Dark mode: Returns '#CUSTOM_DARK_COLOR' (custom)
+```
+
+### Creating Themed Components
+
+```tsx
+function ThemedButton({ title, onPress }) {
+  const backgroundColor = useThemeColor({}, 'tint');
+  const textColor = useThemeColor(
+    { light: '#FFFFFF', dark: '#000000' },
+    'text'
+  );
+
+  return (
+    <TouchableOpacity
+      style={{ backgroundColor, padding: 12, borderRadius: 8 }}
+      onPress={onPress}
+    >
+      <Text style={{ color: textColor }}>{title}</Text>
+    </TouchableOpacity>
+  );
+}
+```
+
+## Theme Support
+
+The hook automatically responds to system theme changes. When the user switches between light and dark mode:
+- The `useColorScheme()` hook detects the change
+- Components using `useThemeColor` automatically re-render with the new colors
+- No manual intervention required
+
+## Dependencies
+
+- `@/src/constants/Colors` - Theme color constants
+- `@/src/hooks/useColorScheme` - Color scheme detection hook
+
+## Related
+
+- [Expo Color Schemes Documentation](https://docs.expo.dev/guides/color-schemes/)
+- `Colors` constant in `@/src/constants/Colors`
+- `useColorScheme` hook for detecting current theme

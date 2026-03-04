@@ -1,0 +1,167 @@
+---
+title: 'useAuth'
+description: 'Authentication hook for managing user sessions, sign in, and sign out'
+icon: 'shield-check'
+---
+
+## Overview
+
+The `useAuth` hook provides access to the authentication context, including the current user, sign-in/sign-out functions, and loading state. It handles JWT token management, automatic session expiry, and persistent storage using AsyncStorage.
+
+## Usage
+
+```tsx
+import { useAuth } from '@/src/hooks/useAuth';
+
+function MyComponent() {
+  const { user, signIn, signOut, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <View>
+      {user ? (
+        <Text>Welcome, {user.name}!</Text>
+      ) : (
+        <Button onPress={() => signIn(email, password)} />
+      )}
+    </View>
+  );
+}
+```
+
+## AuthProvider
+
+Wrap your app with `AuthProvider` to enable authentication throughout the component tree:
+
+```tsx
+import { AuthProvider } from '@/src/hooks/useAuth';
+
+export default function App() {
+  return (
+    <AuthProvider>
+      {/* Your app components */}
+    </AuthProvider>
+  );
+}
+```
+
+## Return Value
+
+The hook returns an `AuthContextType` object with the following properties:
+
+<ResponseField name="user" type="User | null">
+  The currently authenticated user, or `null` if not signed in.
+  
+  <Expandable title="User type">
+    <ResponseField name="id" type="string">
+      Unique identifier for the user
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Display name of the user
+    </ResponseField>
+    <ResponseField name="role" type="string">
+      User role (e.g., 'admin', 'user', 'guest')
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="signIn" type="(email: string, password: string) => Promise<void>">
+  Async function to authenticate a user with email and password. On success:
+  - Stores user data and JWT token in AsyncStorage
+  - Sets the Authorization header in API client
+  - Schedules automatic sign-out when token expires
+  - Redirects to `/(main)/dashboard`
+  
+  On error, displays an Alert with appropriate error message based on status code (401, 404, 500).
+</ResponseField>
+
+<ResponseField name="signOut" type="() => Promise<void>">
+  Async function to sign out the current user:
+  - Clears user state
+  - Removes stored credentials from AsyncStorage
+  - Removes Authorization header from API client
+  - Cancels scheduled token expiry timeout
+  - Redirects to `/landing`
+</ResponseField>
+
+<ResponseField name="loading" type="boolean">
+  Indicates whether authentication state is being loaded or an authentication operation is in progress.
+</ResponseField>
+
+## Type Definitions
+
+```typescript
+type User = {
+  id: string;
+  name: string;
+  role: string;
+};
+
+type AuthContextType = {
+  user: User | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  loading: boolean;
+};
+```
+
+## Implementation Details
+
+### Token Management
+
+The hook automatically:
+- Decodes JWT tokens to extract expiration time
+- Schedules automatic sign-out when token expires
+- Validates tokens with the backend on app load via `/auth/me` endpoint
+- Falls back to local token validation if network request fails
+
+### Persistent Storage
+
+User data and tokens are stored in AsyncStorage under the key `@ris_gran_chimu_user`:
+
+```typescript
+// Storage format
+{
+  user: {
+    id: string,
+    name: string,
+    role: string
+  },
+  token: string
+}
+```
+
+### Session Expiry
+
+When a token expires, the app:
+1. Displays an Alert: "Sesión expirada - Tu sesión ha caducado. Se cerrará la sesión."
+2. Automatically calls `signOut()` when user dismisses the alert
+3. Redirects to the landing page
+
+## Error Handling
+
+The `signIn` function handles various error scenarios:
+
+- **401**: "Correo o contraseña incorrectos."
+- **404**: "Usuario no encontrado."
+- **500**: "Error del servidor. Intenta más tarde."
+- **Network error**: "No se pudo conectar al servidor. Verifica tu conexión a internet."
+- **Other errors**: "Ocurrió un error inesperado. Intenta nuevamente."
+
+## Requirements
+
+<Warning>
+  This hook must be used within an `AuthProvider`. Using it outside the provider will throw an error:
+  ```
+  Error: useAuth must be used within an AuthProvider
+  ```
+</Warning>
+
+## Dependencies
+
+- `@react-native-async-storage/async-storage` - For persistent storage
+- `expo-router` - For navigation
+- `../services/apiClient` - For API communication and token management

@@ -1,97 +1,260 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: RIS Gran Chimú Documentation
+description: Mobile health information system for Red Integrada de Salud Gran Chimú built with React Native and Expo
+mode: custom
 ---
 
-## Setting up
+<div className="relative overflow-hidden dark:bg-[#0f1117] bg-white py-20">
+  <div className="max-w-6xl mx-auto px-6">
+    <div className="grid lg:grid-cols-12 gap-8 items-center">
+      <div className="lg:col-span-7">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold dark:text-white text-gray-900 mb-6">
+          RIS Gran Chimú Mobile App
+        </h1>
+        <p className="text-base sm:text-lg lg:text-xl dark:text-gray-400 text-gray-600 mb-8 max-w-2xl">
+          Build and maintain the official mobile health information system for Red Integrada de Salud Gran Chimú. Access institutional news, health facilities, services, and regulatory documents in real-time.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <a 
+            href="/quickstart" 
+            className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-colors bg-[#94cb04] text-gray-900 hover:bg-[#7ea903] no-underline"
+          >
+            Get Started
+          </a>
+          <a 
+            href="/architecture/overview" 
+            className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-colors dark:bg-white/10 dark:border-white/30 dark:text-white dark:hover:bg-white/20 bg-gray-100 border border-gray-300 text-gray-900 hover:bg-gray-200 no-underline"
+          >
+            Explore Architecture
+          </a>
+        </div>
+      </div>
+      <div className="lg:col-span-5 hidden lg:block">
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#94cb04]/20 to-transparent rounded-2xl blur-3xl"></div>
+          <div className="relative dark:bg-[#1a1d27] bg-gray-50 rounded-2xl p-8 dark:border dark:border-[#27272a] border border-gray-200">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-[#94cb04]/10 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="dark:text-white text-gray-900 font-semibold">React Native + Expo</div>
+                  <div className="dark:text-gray-400 text-gray-600 text-sm">Cross-platform mobile</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-[#94cb04]/10 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="dark:text-white text-gray-900 font-semibold">JWT Authentication</div>
+                  <div className="dark:text-gray-400 text-gray-600 text-sm">Role-based access control</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-[#94cb04]/10 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="dark:text-white text-gray-900 font-semibold">Offline Mode</div>
+                  <div className="dark:text-gray-400 text-gray-600 text-sm">Session persistence</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold dark:text-white text-gray-900 mb-4">
+    Quick Start
+  </h2>
+  <p className="dark:text-gray-400 text-gray-600 mb-8">
+    Get the RIS Gran Chimú mobile app running on your development environment in minutes.
+  </p>
+  
+  <Steps>
+    <Step title="Clone and install dependencies">
+      Clone the repository and install all required packages:
+      
+      ```bash
+      git clone https://github.com/adfv126/ris-gran-chimu-frontend.git
+      cd ris-gran-chimu-frontend
+      npm install
+      ```
+    </Step>
+    
+    <Step title="Configure the API endpoint">
+      Verify the backend API URL in `src/services/apiClient.ts`:
+      
+      ```typescript
+      const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+      ```
+      
+      <Note>
+        The app points to the production backend by default. Update `BASE_URL` if you're running a local backend instance.
+      </Note>
+    </Step>
+    
+    <Step title="Start the development server">
+      Launch Expo and scan the QR code with Expo Go on your device:
+      
+      ```bash
+      npx expo start
+      ```
+      
+      You can also run on specific platforms:
+      
+      ```bash
+      # Android
+      npm run android
+      
+      # iOS
+      npm run ios
+      
+      # Web
+      npm run web
+      ```
+    </Step>
+  </Steps>
+</div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold dark:text-white text-gray-900 mb-4">
+    Explore by topic
+  </h2>
+  <p className="dark:text-gray-400 text-gray-600 mb-8">
+    Learn about the core features and architecture of the RIS Gran Chimú mobile app.
+  </p>
+  
+  <CardGroup cols={2}>
+    <Card title="Architecture overview" icon="building" href="/architecture/overview">
+      Understand the app structure, routing system, and authentication flow
+    </Card>
+    <Card title="Public pages" icon="globe" href="/features/public-pages">
+      Explore institutional news, health facilities, and regulatory documents
+    </Card>
+    <Card title="Admin dashboard" icon="lock" href="/features/admin-panel">
+      Manage content with role-based access control for admins and editors
+    </Card>
+    <Card title="API integration" icon="plug" href="/development/api-integration">
+      Learn how the app communicates with the backend using Axios
+    </Card>
+  </CardGroup>
+</div>
 
-## Make it yours
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold dark:text-white text-gray-900 mb-4">
+    Key features
+  </h2>
+  <p className="dark:text-gray-400 text-gray-600 mb-8">
+    The RIS Gran Chimú mobile app provides comprehensive health information access for citizens and administrators.
+  </p>
+  
+  <div className="grid md:grid-cols-2 gap-6">
+    <div className="dark:bg-[#1a1d27] bg-gray-50 rounded-xl p-6 dark:border dark:border-[#27272a] border border-gray-200">
+      <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 flex items-center justify-center mb-4">
+        <svg className="w-5 h-5 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+        </svg>
+      </div>
+      <h3 className="dark:text-white text-gray-900 font-semibold mb-2">Institutional news carousel</h3>
+      <p className="dark:text-gray-400 text-gray-600 text-sm">
+        Dynamic news feed with the latest updates from Red Integrada de Salud Gran Chimú
+      </p>
+    </div>
+    
+    <div className="dark:bg-[#1a1d27] bg-gray-50 rounded-xl p-6 dark:border dark:border-[#27272a] border border-gray-200">
+      <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 flex items-center justify-center mb-4">
+        <svg className="w-5 h-5 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+      <h3 className="dark:text-white text-gray-900 font-semibold mb-2">Health guide</h3>
+      <p className="dark:text-gray-400 text-gray-600 text-sm">
+        Comprehensive information about health establishments, services, and strategies
+      </p>
+    </div>
+    
+    <div className="dark:bg-[#1a1d27] bg-gray-50 rounded-xl p-6 dark:border dark:border-[#27272a] border border-gray-200">
+      <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 flex items-center justify-center mb-4">
+        <svg className="w-5 h-5 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h3 className="dark:text-white text-gray-900 font-semibold mb-2">Regulatory documents</h3>
+      <p className="dark:text-gray-400 text-gray-600 text-sm">
+        Public access to official resolutions and regulatory documentation
+      </p>
+    </div>
+    
+    <div className="dark:bg-[#1a1d27] bg-gray-50 rounded-xl p-6 dark:border dark:border-[#27272a] border border-gray-200">
+      <div className="w-10 h-10 rounded-lg bg-[#94cb04]/10 flex items-center justify-center mb-4">
+        <svg className="w-5 h-5 text-[#94cb04]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </div>
+      <h3 className="dark:text-white text-gray-900 font-semibold mb-2">Admin panel</h3>
+      <p className="dark:text-gray-400 text-gray-600 text-sm">
+        Secure content management with role-based permissions for admins and editors
+      </p>
+    </div>
+  </div>
+</div>
 
-Design a docs site that looks great and empowers your users.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-2xl sm:text-3xl font-semibold dark:text-white text-gray-900 mb-4">
+    API Reference
+  </h2>
+  <p className="dark:text-gray-400 text-gray-600 mb-8">
+    Explore the hooks, services, and components that power the RIS Gran Chimú mobile app.
+  </p>
+  
+  <CardGroup cols={3}>
+    <Card title="useAuth" icon="key" href="/api/hooks/use-auth">
+      Authentication hook with sign in/out and session management
+    </Card>
+    <Card title="apiClient" icon="server" href="/api/services/api-client">
+      Axios instance with JWT token interceptors
+    </Card>
+    <Card title="ThemedText" icon="text" href="/api/components/themed-text">
+      Theme-aware text component
+    </Card>
+    <Card title="useDebounce" icon="clock" href="/api/hooks/use-debounce">
+      Debounce hook for search inputs
+    </Card>
+    <Card title="PermissionContext" icon="shield" href="/api/context/permission-context">
+      Role-based permission context
+    </Card>
+    <Card title="ThemedView" icon="window" href="/api/components/themed-view">
+      Theme-aware view component
+    </Card>
+  </CardGroup>
+</div>
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
-
-## Need inspiration?
-
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<div className="mt-20 mb-16 max-w-5xl mx-auto px-6">
+  <div className="dark:bg-[#1a1d27] bg-gray-50 rounded-2xl p-8 sm:p-12 text-center dark:border dark:border-[#27272a] border border-gray-200">
+    <h2 className="text-2xl sm:text-3xl font-semibold dark:text-white text-gray-900 mb-4">
+      Ready to start building?
+    </h2>
+    <p className="dark:text-gray-400 text-gray-600 mb-8 max-w-2xl mx-auto">
+      Follow our quickstart guide to set up your development environment and start contributing to the RIS Gran Chimú mobile app.
+    </p>
+    <a 
+      href="/quickstart" 
+      className="inline-flex items-center px-6 py-3 rounded-lg font-semibold transition-colors bg-[#94cb04] text-gray-900 hover:bg-[#7ea903] no-underline"
+    >
+      Get Started Now
+    </a>
+  </div>
+</div>

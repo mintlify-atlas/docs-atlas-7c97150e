@@ -1,0 +1,130 @@
+---
+title: 'API Client'
+description: 'Axios instance configuration and authentication token management'
+---
+
+## Overview
+
+The API Client module provides a configured Axios instance for making HTTP requests to the RIS Gran Chimú backend, along with utilities for managing authentication tokens.
+
+## Configuration
+
+### BASE_URL
+
+```typescript
+const BASE_URL = 'https://ris-gran-chimu-backend.vercel.app/api';
+```
+
+The base URL for all API requests to the RIS Gran Chimú backend.
+
+### apiClient
+
+```typescript
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+Pre-configured Axios instance with:
+- **baseURL**: Points to the RIS Gran Chimú backend API
+- **timeout**: 10 second request timeout
+- **headers**: Default Content-Type set to application/json
+
+## Functions
+
+### setAuthToken
+
+Sets or removes the Authorization header for all API requests.
+
+```typescript
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('🔐 [setAuthToken] Header configurado con token');
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log('🔓 [setAuthToken] Header eliminado');
+  }
+};
+```
+
+<ParamField path="token" type="string | null" required>
+  Authentication token to set. Pass `null` to remove the Authorization header.
+</ParamField>
+
+#### Behavior
+
+- If `token` is provided, sets the `Authorization` header to `Bearer {token}`
+- If `token` is `null`, removes the `Authorization` header from all requests
+- Logs the action to console for debugging
+
+#### Implementation Details
+
+Location: `src/services/apiClient.ts:21`
+
+The function modifies `apiClient.defaults.headers.common['Authorization']` to ensure all subsequent requests include the authentication token.
+
+---
+
+### getStoredToken
+
+Retrieves the stored authentication token from secure storage and applies it to the API client.
+
+```typescript
+export const getStoredToken = async () => {
+  try {
+    const stored = await SecureStore.getItemAsync('authToken');
+    if (stored) {
+      setAuthToken(stored);
+    }
+    return stored;
+  } catch (error) {
+    console.error('Error al recuperar el token:', error);
+    return null;
+  }
+};
+```
+
+<ResponseField name="return" type="Promise<string | null>">
+  Returns the stored authentication token if found, or `null` if not found or an error occurred.
+</ResponseField>
+
+#### Behavior
+
+- Retrieves the token from Expo SecureStore using key `'authToken'`
+- If a token is found, automatically applies it using `setAuthToken()`
+- Returns the token value or `null` if not found
+- Catches and logs any errors during retrieval
+
+#### Implementation Details
+
+Location: `src/services/apiClient.ts:32`
+
+This function is typically called during app initialization to restore authentication state from previous sessions.
+
+## Usage Example
+
+```typescript
+import apiClient, { setAuthToken, getStoredToken } from './services/apiClient';
+
+// Initialize auth token on app start
+await getStoredToken();
+
+// Make authenticated requests
+const response = await apiClient.get('/users/profile');
+
+// Update token after login
+setAuthToken(newToken);
+
+// Clear token on logout
+setAuthToken(null);
+```
+
+## Dependencies
+
+- `axios`: HTTP client library
+- `expo-secure-store`: Secure storage for sensitive data like authentication tokens

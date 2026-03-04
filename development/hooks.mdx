@@ -1,0 +1,433 @@
+---
+title: 'Custom Hooks'
+description: 'React hooks for authentication, theming, data fetching, and utilities'
+icon: 'fish-fins'
+---
+
+## Overview
+
+The RIS Gran Chimú app provides several custom React hooks for common functionality. These hooks encapsulate complex logic and provide clean APIs for components.
+
+---
+
+## useAuth
+
+Manages user authentication state, login, and logout functionality.
+
+### Location
+
+`src/hooks/useAuth.tsx`
+
+### Type Definition
+
+```tsx
+type User = {
+  id: string;
+  name: string;
+  role: string;
+};
+
+type AuthContextType = {
+  user: User | null;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  loading: boolean;
+};
+```
+
+### Usage
+
+```tsx
+import { useAuth } from '@/src/hooks/useAuth';
+
+export default function ProfileScreen() {
+  const { user, signOut, loading } = useAuth();
+
+  if (loading) {
+    return <ActivityIndicator />;
+  }
+
+  return (
+    <View>
+      <Text>Welcome, {user?.name}</Text>
+      <Text>Role: {user?.role}</Text>
+      <Button title="Sign Out" onPress={signOut} />
+    </View>
+  );
+}
+```
+
+### API Reference
+
+<ParamField path="user" type="User | null">
+  Current authenticated user or `null` if not logged in
+</ParamField>
+
+<ParamField path="signIn" type="(email: string, password: string) => Promise<void>">
+  Authenticates user with email and password. Stores token and redirects to dashboard on success.
+</ParamField>
+
+<ParamField path="signOut" type="() => Promise<void>">
+  Logs out the current user, clears stored credentials, and redirects to landing page
+</ParamField>
+
+<ParamField path="loading" type="boolean">
+  `true` while authentication state is being initialized or during login
+</ParamField>
+
+### Features
+
+<AccordionGroup>
+  <Accordion title="Automatic Token Management">
+    - Stores JWT token securely in AsyncStorage
+    - Automatically applies token to API requests via `setAuthToken()`
+    - Validates token on app startup
+  </Accordion>
+
+  <Accordion title="Session Expiry Handling">
+    - Decodes JWT to check expiration time
+    - Schedules automatic logout when token expires
+    - Shows alert to user before logging out
+  </Accordion>
+
+  <Accordion title="Error Handling">
+    - Provides user-friendly error messages for different scenarios:
+      - 401: "Correo o contraseña incorrectos"
+      - 404: "Usuario no encontrado"
+      - 500: "Error del servidor"
+      - Network errors: Connection failure messages
+  </Accordion>
+
+  <Accordion title="Persistent Sessions">
+    - Restores user session from AsyncStorage on app launch
+    - Validates stored token with backend `/auth/me` endpoint
+    - Falls back to local validation if backend unavailable
+  </Accordion>
+</AccordionGroup>
+
+### Login Flow
+
+```tsx
+const signIn = async (email: string, password: string) => {
+  const { user, token } = await apiClient.post('/auth/login', { email, password });
+  
+  // Map backend fields to frontend User type
+  const mappedUser = {
+    id: String(user.id),
+    name: user.nombre,
+    role: user.rol
+  };
+  
+  // Store in AsyncStorage
+  await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify({ user: mappedUser, token }));
+  
+  // Set token for API requests
+  setAuthToken(token);
+  
+  // Schedule auto-logout on expiry
+  scheduleExpiry(token);
+  
+  // Redirect to dashboard
+  router.replace('/(main)/dashboard');
+};
+```
+
+<Warning>
+  `useAuth` must be used within an `<AuthProvider>`. The provider is typically placed in `_layout.tsx`.
+</Warning>
+
+---
+
+## useDebounce
+
+Delays updating a value until after a specified time has passed since the last change.
+
+### Location
+
+`src/hooks/useDebounce.ts`
+
+### Signature
+
+```tsx
+function useDebounce(value: string, delay: number): string
+```
+
+### Implementation
+
+```tsx src/hooks/useDebounce.ts
+import { useState, useEffect } from 'react';
+
+export function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+```
+
+### Usage Example
+
+```tsx Search Component
+import { useState } from 'react';
+import { useDebounce } from '@/src/hooks/useDebounce';
+import { TextInput } from 'react-native';
+
+export default function SearchScreen() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, 500);
+
+  // This effect only runs 500ms after user stops typing
+  useEffect(() => {
+    if (debouncedQuery) {
+      performSearch(debouncedQuery);
+    }
+  }, [debouncedQuery]);
+
+  return (
+    <TextInput
+      value={searchQuery}
+      onChangeText={setSearchQuery}
+      placeholder="Search normas..."
+    />
+  );
+}
+```
+
+<Info>
+  Common use cases: search inputs, API calls on text input, validation checks
+</Info>
+
+---
+
+## useThemeColor
+
+Retrieves the appropriate color value based on the current theme (light/dark mode).
+
+### Location
+
+`src/hooks/useThemeColor.ts`
+
+### Signature
+
+```tsx
+function useThemeColor(
+  props: { light?: string; dark?: string },
+  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+): string
+```
+
+### Implementation
+
+```tsx src/hooks/useThemeColor.ts
+import { Colors } from '@/src/constants/Colors';
+import { useColorScheme } from '@/src/hooks/useColorScheme';
+
+export function useThemeColor(
+  props: { light?: string; dark?: string },
+  colorName: keyof typeof Colors.light & keyof typeof Colors.dark
+) {
+  const theme = useColorScheme() ?? 'light';
+  const colorFromProps = props[theme];
+
+  if (colorFromProps) {
+    return colorFromProps;
+  } else {
+    return Colors[theme][colorName];
+  }
+}
+```
+
+### Parameters
+
+<ParamField path="props" type="{ light?: string; dark?: string }">
+  Optional color overrides for light and dark modes
+</ParamField>
+
+<ParamField path="colorName" type="string">
+  Key from Colors constant: `'text'`, `'background'`, `'tint'`, `'icon'`, `'tabIconDefault'`, `'tabIconSelected'`
+</ParamField>
+
+### Usage Example
+
+```tsx
+import { useThemeColor } from '@/src/hooks/useThemeColor';
+import { View, Text } from 'react-native';
+
+export default function CustomCard() {
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({ light: '#333', dark: '#fff' }, 'text');
+  const iconColor = useThemeColor({}, 'icon');
+
+  return (
+    <View style={{ backgroundColor, padding: 16 }}>
+      <Text style={{ color: textColor }}>Card Content</Text>
+    </View>
+  );
+}
+```
+
+---
+
+## useColorScheme
+
+Returns the current color scheme (light or dark mode).
+
+### Location
+
+`src/hooks/useColorScheme.ts`
+
+### Implementation
+
+```tsx
+export { useColorScheme } from 'react-native';
+```
+
+<Note>
+  This is a re-export of React Native's built-in `useColorScheme` hook. On web, a custom implementation in `useColorScheme.web.ts` is used instead.
+</Note>
+
+### Usage
+
+```tsx
+import { useColorScheme } from '@/src/hooks/useColorScheme';
+
+export default function ThemeToggle() {
+  const colorScheme = useColorScheme();
+
+  return (
+    <Text>
+      Current theme: {colorScheme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+    </Text>
+  );
+}
+```
+
+---
+
+## useFetchNormas
+
+Fetches the list of normas (regulations) from the API.
+
+### Location
+
+`src/hooks/useFetchNormas.ts`
+
+### Return Type
+
+```tsx
+{
+  normas: Norma[];
+  loading: boolean;
+  error: any;
+}
+```
+
+### Implementation
+
+```tsx src/hooks/useFetchNormas.ts
+import { useState, useEffect } from 'react';
+import apiClient from '../services/apiClient';
+import { Norma } from '../types/Norma';
+
+export function useFetchNormas() {
+  const [normas, setNormas] = useState<Norma[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchNormas = async () => {
+      try {
+        setLoading(true);
+        const res = await apiClient.get('/normas');
+        const data = (res.data as { data: Norma[] }).data || [];
+        setNormas(data);
+      } catch (err: any) {
+        setError(err);
+        console.error('Error al cargar normas:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNormas();
+  }, []);
+
+  return { normas, loading, error };
+}
+```
+
+### Norma Type
+
+```tsx src/types/Norma.ts
+export interface Norma {
+  id_norma: string;
+  anho: string;
+  descripcion: string;
+}
+```
+
+### Usage Example
+
+```tsx
+import { useFetchNormas } from '@/src/hooks/useFetchNormas';
+import { FlatList, ActivityIndicator } from 'react-native';
+import { ThemedText } from '@/src/components/ThemedText';
+
+export default function NormasListScreen() {
+  const { normas, loading, error } = useFetchNormas();
+
+  if (loading) {
+    return <ActivityIndicator size="large" />;
+  }
+
+  if (error) {
+    return <ThemedText>Error loading normas</ThemedText>;
+  }
+
+  return (
+    <FlatList
+      data={normas}
+      keyExtractor={(item) => item.id_norma}
+      renderItem={({ item }) => (
+        <View>
+          <ThemedText type="subtitle">{item.descripcion}</ThemedText>
+          <ThemedText>Year: {item.anho}</ThemedText>
+        </View>
+      )}
+    />
+  );
+}
+```
+
+<Note>
+  This hook fetches data only once when the component mounts. For real-time updates, consider adding a refresh function or using a state management solution.
+</Note>
+
+---
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Error Handling" icon="triangle-exclamation">
+    Always handle the `error` state from data-fetching hooks like `useFetchNormas`
+  </Card>
+
+  <Card title="Loading States" icon="spinner">
+    Show loading indicators when `loading` is `true` to improve UX
+  </Card>
+
+  <Card title="Debounce Input" icon="clock">
+    Use `useDebounce` for search inputs to reduce unnecessary API calls
+  </Card>
+
+  <Card title="Auth Protection" icon="lock">
+    Check `user` from `useAuth` to conditionally render protected content
+  </Card>
+</CardGroup>

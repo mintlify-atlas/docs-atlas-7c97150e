@@ -1,0 +1,113 @@
+---
+title: ThemedText
+description: A themed text component that automatically adapts to light and dark color schemes
+---
+
+# ThemedText
+
+The `ThemedText` component is a wrapper around React Native's `Text` component that automatically applies theme-aware colors and provides predefined text styles.
+
+## Import
+
+```tsx
+import { ThemedText } from '@/src/components/ThemedText';
+```
+
+## Props
+
+The component extends all standard React Native `TextProps` and adds the following:
+
+<ParamField path="lightColor" type="string" optional>
+  Custom color to use in light mode. If not provided, uses the theme's default text color.
+</ParamField>
+
+<ParamField path="darkColor" type="string" optional>
+  Custom color to use in dark mode. If not provided, uses the theme's default text color.
+</ParamField>
+
+<ParamField path="type" type="'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link'" default="'default'" optional>
+  Predefined text style to apply:
+  - `default`: 16px font size, 24px line height
+  - `title`: 32px bold font, 32px line height
+  - `defaultSemiBold`: 16px semi-bold font, 24px line height
+  - `subtitle`: 20px bold font
+  - `link`: 16px font, 30px line height, blue color (#0a7ea4)
+</ParamField>
+
+## Usage
+
+### Basic Usage
+
+```tsx
+<ThemedText>This text adapts to the theme</ThemedText>
+```
+
+### With Type Variants
+
+```tsx
+<ThemedText type="title">Page Title</ThemedText>
+<ThemedText type="subtitle">Section Subtitle</ThemedText>
+<ThemedText type="defaultSemiBold">Emphasized text</ThemedText>
+<ThemedText type="link">Clickable link</ThemedText>
+```
+
+### Custom Theme Colors
+
+```tsx
+<ThemedText 
+  lightColor="#000000" 
+  darkColor="#FFFFFF"
+>
+  Custom colored text
+</ThemedText>
+```
+
+### With Additional Styles
+
+```tsx
+<ThemedText 
+  type="subtitle" 
+  style={{ marginBottom: 10, textAlign: 'center' }}
+>
+  Centered subtitle with margin
+</ThemedText>
+```
+
+## How Theme Colors Work
+
+The component uses the `useThemeColor` hook to automatically select the appropriate color based on the current theme:
+
+1. If `lightColor` or `darkColor` are provided, those are used for the respective themes
+2. Otherwise, it falls back to the theme's default `text` color
+3. The color automatically updates when the user switches between light and dark mode
+
+## Source Code
+
+Location: `src/components/ThemedText.tsx:11`
+
+```tsx
+export function ThemedText({
+  style,
+  lightColor,
+  darkColor,
+  type = 'default',
+  ...rest
+}: ThemedTextProps) {
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+
+  return (
+    <Text
+      style={[
+        { color },
+        type === 'default' ? styles.default : undefined,
+        type === 'title' ? styles.title : undefined,
+        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
+        type === 'subtitle' ? styles.subtitle : undefined,
+        type === 'link' ? styles.link : undefined,
+        style,
+      ]}
+      {...rest}
+    />
+  );
+}
+```
