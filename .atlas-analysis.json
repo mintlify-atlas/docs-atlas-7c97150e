@@ -1,0 +1,109 @@
+{
+  "projectType": "frontend",
+  "projectName": "RIS Gran Chimú",
+  "projectDescription": "Mobile health information system for Red Integrada de Salud Gran Chimú built with React Native and Expo",
+  "theme": "mint",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/project-structure",
+              "architecture/routing",
+              "architecture/authentication"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/public-pages",
+              "features/dashboard",
+              "features/admin-panel",
+              "features/offline-mode"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/components",
+              "development/hooks",
+              "development/api-integration",
+              "development/state-management"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core",
+            "pages": [
+              "api/hooks/use-auth",
+              "api/hooks/use-debounce",
+              "api/hooks/use-theme-color"
+            ]
+          },
+          {
+            "group": "Services",
+            "pages": [
+              "api/services/api-client",
+              "api/services/auth-service"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "api/components/themed-text",
+              "api/components/themed-view"
+            ]
+          },
+          {
+            "group": "Context",
+            "pages": [
+              "api/context/permission-context"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Institutional news carousel with dynamic content",
+    "Health guide with establishments, services, and strategies",
+    "Public access to regulatory documents and resolutions",
+    "Role-based admin dashboard (admin and editor roles)",
+    "JWT authentication with automatic token refresh",
+    "Offline mode with session persistence",
+    "File-based routing with Expo Router",
+    "Secure credential storage with expo-secure-store"
+  ],
+  "publicApiSurface": [
+    "useAuth() - Authentication hook with signIn/signOut",
+    "useDebounce() - Debounce hook for search inputs",
+    "useThemeColor() - Theme-aware color hook",
+    "useFetchNormas() - Hook for fetching regulatory documents",
+    "apiClient - Configured Axios instance with interceptors",
+    "setAuthToken() - Set JWT token for API requests",
+    "getStoredToken() - Retrieve stored authentication token",
+    "AuthProvider - Context provider for authentication state",
+    "PermissionContext - Context for role-based permissions",
+    "ThemedText - Theme-aware text component",
+    "ThemedView - Theme-aware view component"
+  ]
+}
