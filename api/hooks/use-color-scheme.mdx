@@ -1,0 +1,75 @@
+---
+title: useColorScheme
+description: Hook for detecting the device's color scheme (light or dark mode)
+icon: circle-half-stroke
+---
+
+## Overview
+
+The `useColorScheme` hook is a re-export of React Native's built-in hook that detects the device's current color scheme preference.
+
+## Import
+
+```typescript
+import { useColorScheme } from '@/src/hooks/useColorScheme';
+```
+
+## Return Value
+
+<ResponseField name="colorScheme" type="'light' | 'dark' | null">
+  The current color scheme. Returns `'light'`, `'dark'`, or `null` if the color scheme cannot be determined.
+</ResponseField>
+
+## Implementation
+
+This hook simply re-exports React Native's `useColorScheme`:
+
+```typescript
+export { useColorScheme } from 'react-native';
+```
+
+For web platforms, there's a separate implementation in `useColorScheme.web.ts`:
+
+```typescript
+export function useColorScheme() {
+  return 'light';
+}
+```
+
+## Usage Example
+
+```tsx
+import { useColorScheme } from '@/src/hooks/useColorScheme';
+
+export default function ThemedComponent() {
+  const colorScheme = useColorScheme();
+  
+  const backgroundColor = colorScheme === 'dark' ? '#000' : '#fff';
+  const textColor = colorScheme === 'dark' ? '#fff' : '#000';
+
+  return (
+    <View style={{ backgroundColor }}>
+      <Text style={{ color: textColor }}>
+        Current theme: {colorScheme}
+      </Text>
+    </View>
+  );
+}
+```
+
+## Platform Differences
+
+- **Mobile (iOS/Android)**: Returns the device's system color scheme
+- **Web**: Always returns `'light'` (as defined in `useColorScheme.web.ts`)
+
+## Used By
+
+This hook is used internally by:
+- [useThemeColor](/api/hooks/use-theme-color) - To determine which color to use based on the current theme
+- [ThemedText](/api/components/themed-text) - To apply theme-aware text colors
+- [ThemedView](/api/components/themed-view) - To apply theme-aware background colors
+
+## Related
+
+- [useThemeColor](/api/hooks/use-theme-color) - Get colors based on the current theme
+- [React Native useColorScheme](https://reactnative.dev/docs/usecolorscheme) - Official documentation

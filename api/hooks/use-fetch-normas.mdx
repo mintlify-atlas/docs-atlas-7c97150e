@@ -1,0 +1,129 @@
+---
+title: useFetchNormas
+description: Hook for fetching regulatory documents (normas) from the API
+icon: scroll
+---
+
+## Overview
+
+The `useFetchNormas` hook fetches the list of regulatory documents (normas) from the backend API and manages the loading and error states.
+
+## Import
+
+```typescript
+import { useFetchNormas } from '@/src/hooks/useFetchNormas';
+```
+
+## Return Value
+
+<ResponseField name="normas" type="Norma[]">
+  Array of regulatory documents fetched from the API
+</ResponseField>
+
+<ResponseField name="loading" type="boolean">
+  Whether the fetch operation is in progress
+</ResponseField>
+
+<ResponseField name="error" type="any | null">
+  Error object if the fetch fails, null otherwise
+</ResponseField>
+
+## Type Definitions
+
+```typescript
+interface Norma {
+  id_norma: string;
+  anho: string;
+  descripcion: string;
+}
+```
+
+## Implementation
+
+The hook automatically fetches normas when the component mounts:
+
+```typescript
+export function useFetchNormas() {
+  const [normas, setNormas] = useState<Norma[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchNormas = async () => {
+      try {
+        setLoading(true);
+        const res = await apiClient.get('/normas');
+        const data = (res.data as { data: Norma[] }).data || [];
+        setNormas(data);
+      } catch (err: any) {
+        setError(err);
+        console.error('Error al cargar normas:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNormas();
+  }, []);
+
+  return { normas, loading, error };
+}
+```
+
+## Usage Example
+
+```tsx
+import { useFetchNormas } from '@/src/hooks/useFetchNormas';
+
+export default function NormasScreen() {
+  const { normas, loading, error } = useFetchNormas();
+
+  if (loading) {
+    return <Text>Loading normas...</Text>;
+  }
+
+  if (error) {
+    return <Text>Error loading normas: {error.message}</Text>;
+  }
+
+  return (
+    <View>
+      {normas.map((norma) => (
+        <View key={norma.id_norma}>
+          <Text>{norma.anho} - {norma.descripcion}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+```
+
+## API Endpoint
+
+The hook fetches data from:
+
+```
+GET /normas
+```
+
+Response format:
+```json
+{
+  "data": [
+    {
+      "id_norma": "001",
+      "anho": "2024",
+      "descripcion": "Resolución de Gerencia N° 001-2024"
+    }
+  ]
+}
+```
+
+## Error Handling
+
+Errors are caught and stored in the `error` state. The error is also logged to the console for debugging purposes.
+
+## Related
+
+- [API Client](/api/services/api-client) - Axios configuration
+- [Norma Type](/architecture/project-structure#types) - Type definition

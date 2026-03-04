@@ -73,7 +73,9 @@
             "pages": [
               "api/hooks/use-auth",
               "api/hooks/use-debounce",
-              "api/hooks/use-theme-color"
+              "api/hooks/use-theme-color",
+              "api/hooks/use-color-scheme",
+              "api/hooks/use-fetch-normas"
             ]
           },
           {
